@@ -80,22 +80,23 @@ class ApiSyncUser(BaseHandler):
         return json.dumps(res)
 
 '''
-同步订阅
+訂閱
 '''
 class ApiFeedRSS(BaseHandler):
     __url__ = "/api/v2/rss/(.*)"
     def __init__(self):
         super(ApiFeedRSS, self).__init__(setLang=False)
         self.now = datetime.datetime.utcnow()
+        self.webInput = web.input()
+        self.key = self.webInput.get('key')
+        self.res = {"status": "ok", "msg": ""}
+        if self.key != __auth_key__:  # key 有问题不抛错误信息
+            return "error"
 
-    def GET(self):
-        web.header('Content-Type', 'application/json')
-
-    def POST(self,mgrType):  # 添加自定义RSS
+    def POST(self,mgrType):  # RSS 類
         res = {"status": "ok", "msg": ""}
-        webInput = web.input()
-        user_name = webInput.get('user_name')
-        if mgrType.lower() == 'myrss':
+        user_name = self.webInput.get('user_name')
+        if mgrType.lower() == 'myrss':  #RSS我的訂閱
             if not user_name:
                 return ""
             user = KeUser.all().filter("name = ", user_name).get()
@@ -116,23 +117,35 @@ class ApiFeedRSS(BaseHandler):
 
         elif mgrType.lower() == 'add':  # 我的订阅更新
             user = KeUser.all().filter("name = ", user_name).get()
-            titles = webInput.get('rss_ids')
-            if len(titles) != 0:
-                rss_ids = titles.split(",")
-                for rss_id in rss_ids:
-                    rss = LibRss.get_by_id(int(rss_id))
-                    if rss is None:
-                        continue
-                        # 判断是否重复
-                    ownUrls = [rss.url for item in user.ownfeeds.feeds]
-                    if rss.url in ownUrls:
-                        continue
-                    if not rss.url.lower().startswith('http'):  # http and https
-                        url = 'https://' + url
-
-                    fd = Feed(title=rss.title, url=rss.url, book=user.ownfeeds, isfulltext=rss.isfulltext,
-                              time=datetime.datetime.utcnow())
-                    fd.put()
-
-                    memcache.delete('%d.feedscount' % user.ownfeeds.key().id())
+            feed_id = self.webInput.get('feed_id')
+            if len(feed_id) != 0:
+                rss = LibRss.get_by_id(int(feed_id))
+                if rss is None:
+                    return ""
+                    # 判断是否重复
+                ownUrls = [rss.url for item in user.ownfeeds.feeds]
+                if rss.url in ownUrls:
+                    return ""
+                fd = Feed(title=rss.title, url=rss.url, book=user.ownfeeds, isfulltext=rss.isfulltext,
+                          time=datetime.datetime.utcnow())
+                fd.put()
+                memcache.delete('%d.feedscount' % user.ownfeeds.key().id())
                 return json.dumps(res)
+        elif mgrType == 'del':  #订阅删除
+            feed_id = self.webInput.get('feed_id')
+            if len(feed_id) != 0:
+
+                feed = Feed.get_by_id(int(feed_id))
+                if feed:
+                    feed.delete()
+                    return json.dumps(res)
+                else:
+                    res['status'] = 'failed'
+                    res['msg'] = 'The feed(%d) not exist!' % feed_id
+                    return json.dumps(res)
+        elif mgrType.lower() == 'invalid':
+            feed_id = self.webInput.get('feed_id')
+            rss = Feed.get_by_id(int(feed_id))
+            if rss:
+                html = ' 不可用 %s  %s' % (rss.title,rss.url)
+                BaseHandler.SendHtmlMail(name=rss.title, to=SRC_EMAIL, title=rss.title, html=html)

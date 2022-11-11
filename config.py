@@ -71,7 +71,7 @@ WORDCNT_THRESHOLD_FOR_APMAIL = 100
 SUBJECT_WORDCNT_FOR_APMAIL = 16
 
 # retry count when failed in sendmail to kindle
-SENDMAIL_RETRY_CNT = 1
+SENDMAIL_RETRY_CNT = 2
 
 # GAE restrict postfix of attachment in email to send
 # True indicates KindleEar will replace the dot to underline to send mail if it failed.

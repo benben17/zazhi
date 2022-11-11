@@ -217,7 +217,7 @@ class BaseHandler(object):
     @classmethod
     def SendHtmlMail(self, name, to, title, html, attachments, tz=TIMEZONE, textcontent=None):
         if not textcontent or not isinstance(textcontent, basestring):
-            textcontent = "Deliver from KindlerEar, refers to html part."
+            textcontent = "Deliver from librz.link, refers to html part."
 
         for i in range(SENDMAIL_RETRY_CNT+1):
             try:

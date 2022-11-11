@@ -58,10 +58,7 @@ for book in BookClasses():  #添加内置书籍  // 读取books目录下的文�
         continue
     if memcache.get(book.title): #使用memcache加速
         continue
-
     b = Book.all().filter("title = ", book.title).get()
-
-
     if not b:
         b = Book(title=book.title, description=book.description, builtin=True,
                  needs_subscription=book.needs_subscription, separate=False)
