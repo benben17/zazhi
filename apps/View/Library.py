@@ -13,31 +13,30 @@ from apps.BaseHandler import BaseHandler
 from apps.dbModels import *
 from lib.urlopener import URLOpener
 
+__auth_key__ = 'librz.link.luck!'
+
 #网友共享的订阅源数据
 class SharedLibrary(BaseHandler):
-    __url__ = "/library"
 
+    __url__ = "/library"
     def GET(self):
         user = self.getcurrentuser()
 
         #连接分享服务器获取数据
         shared_data = []
-        tips = ''
-        opener = URLOpener()
-        url = urlparse.urljoin('http://kindleear.appspot.com/', SharedLibrarykindleearAppspotCom.__url__)
-        result = opener.open(url + '?key=kindleear.lucky!')
-        if result.status_code == 200 and result.content:
-            shared_data = json.loads(result.content)
-        else:
-            tips = _('Cannot fetch data from kindleear.appspot.com, status: ') + URLOpener.CodeMap(result.status_code)
 
+        for d in LibRss.all().fetch(limit=10000):
+            print d.title
+            shared_data.append({'t': d.title, 'u': d.url, 'f': d.isfulltext, 'c': d.category, 's': d.subscribed,
+                                'd': int((d.created_time - datetime.datetime(1970, 1, 1)).total_seconds())})
+        tips='test'
         return self.render('sharedlibrary.html', "Shared",
             current='shared', user=user, shared_data=shared_data, tips=tips)
 
     #分享了一个订阅源
     def POST(self):
         user = self.getcurrentuser(forAjax=True)
-        web.header('Content-Type', 'application/json')
+        rss_data=[]
         webInput = web.input()
         category = webInput.get('category', '')
         title = webInput.get('title')
@@ -47,17 +46,16 @@ class SharedLibrary(BaseHandler):
 
         if not title or not feedUrl:
             return json.dumps({'status': _("Title or Url is empty!")})
-
-        opener = URLOpener()
-        srvUrl = urlparse.urljoin('http://kindleear.appspot.com/', SharedLibrarykindleearAppspotCom.__url__)
-        data = {'category': category, 'title': title, 'url': feedUrl, 'creator': creator,
-            'isfulltext': 'true' if isfulltext else 'false', 'key': 'kindleear.lucky!'}
-        result = opener.open(srvUrl, data)
-        if result.status_code == 200 and result.content:
-            return result.content
-        else:
-            return json.dumps({'status': _('Cannot submit data to kindleear.appspot.com, status: %s' % URLOpener.CodeMap(result.status_code))})
-
+        now = datetime.datetime.utcnow()
+        rss = LibRss(category= category, title=title, url=feedUrl, creator= creator,
+            isfulltext= isfulltext,created_time=now,invalid_report_days=0, last_invalid_report_time=now)
+        rss.put()
+        for d in LibRss.all().fetch(limit=10000):
+            rss_data.append({'t': d.title, 'u': d.url, 'f': d.isfulltext, 'c': d.category, 's': d.subscribed,
+                                'd': int((d.created_time - datetime.datetime(1970, 1, 1)).total_seconds())})
+        tips = ''
+        return self.render('sharedlibrary.html', "Shared",
+                           current='shared', user=user, shared_data=rss_data, tips=tips)
 class SharedLibraryMgr(BaseHandler):
     __url__ = "/library/mgr/(.*)"
 
@@ -72,7 +70,7 @@ class SharedLibraryMgr(BaseHandler):
             path = SharedLibraryMgrkindleearAppspotCom.__url__.split('/')
             path[-1] = mgrType
             srvUrl = urlparse.urljoin('http://kindleear.appspot.com/', '/'.join(path))
-            data = {'title': title, 'url': feedUrl, 'key': 'kindleear.lucky!'}
+            data = {'title': title, 'url': feedUrl, 'key': __auth_key__}
             result = opener.open(srvUrl, data)
             if result.status_code == 200 and result.content:
                 return result.content
@@ -94,7 +92,7 @@ class SharedLibraryCategory(BaseHandler):
 
         opener = URLOpener()
         url = urlparse.urljoin('http://kindleear.appspot.com/', SharedLibraryCategorykindleearAppspotCom.__url__)
-        result = opener.open(url + '?key=kindleear.lucky!')
+        result = opener.open(url + '?key='+__auth_key__)
 
         if result.status_code == 200 and result.content:
             respDict['categories'] = json.loads(result.content)
@@ -109,33 +107,35 @@ class SharedLibraryCategory(BaseHandler):
 
 #共享库订阅源数据(仅用于kindleear.appspot.com"官方"共享服务器)
 class SharedLibrarykindleearAppspotCom(BaseHandler):
-    __url__ = "/kindleearappspotlibrary"
+    __url__ = "/api/v2/library"
 
     def __init__(self):
         super(SharedLibrarykindleearAppspotCom, self).__init__(setLang=False)
 
     def GET(self):
         key = web.input().get('key', '') #避免爬虫消耗资源
-        if key != 'kindleear.lucky!':
+        if key != __auth_key__:
             return ''
 
         web.header('Content-Type', 'application/json')
-
         #本来想在服务器端分页的，但是好像CPU/数据库存取资源比带宽资源更紧张，所以干脆一次性提供给客户端，由客户端分页和分类
         #如果后续发现这样不理想，也可以考虑修改为服务器端分页
         #qry = SharedRss.all().order('-subscribed').order('-created_time').fetch(limit=10000)
         shared_data = []
-        for d in SharedRss.all().fetch(limit=10000):
+        for d in LibRss.all().fetch(limit=10000):
+
             shared_data.append({'t':d.title, 'u':d.url, 'f':d.isfulltext, 'c':d.category, 's':d.subscribed,
                 'd':int((d.created_time - datetime.datetime(1970, 1, 1)).total_seconds())})
+
         return json.dumps(shared_data)
 
     #网友分享了一个订阅链接
     def POST(self):
         web.header('Content-Type', 'application/json')
         webInput = web.input()
+
         key = webInput.get('key')
-        if key != 'kindleear.lucky!': #避免爬虫消耗资源
+        if key != __auth_key__: #避免爬虫消耗资源
             return ''
 
         category = webInput.get('category', '')
@@ -203,7 +203,7 @@ class SharedLibrarykindleearAppspotCom(BaseHandler):
 
 #共享库的订阅源信息管理
 class SharedLibraryMgrkindleearAppspotCom(BaseHandler):
-    __url__ = "/kindleearappspotlibrary/mgr/(.*)"
+    __url__ = "/pubrsslibrary/mgr/(.*)"
 
     def __init__(self):
         super(SharedLibraryMgrkindleearAppspotCom, self).__init__(setLang=False)
@@ -288,7 +288,7 @@ class SharedLibraryCategorykindleearAppspotCom(BaseHandler):
 
     def GET(self):
         key = web.input().get('key', '') #避免爬虫消耗IO资源
-        if key != 'kindleear.lucky!':
+        if key != __auth_key__:
             return ''
 
         web.header('Content-Type', 'application/json')

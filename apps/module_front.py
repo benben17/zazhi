@@ -53,10 +53,7 @@ from apps.utils import fix_filesizeformat
 #reload(sys)
 #sys.setdefaultencoding('utf-8')
 
-for book in BookClasses():  #添加内置书籍
-    print(book)
-    print(book.title,book.description,book.needs_subscription)
-
+for book in BookClasses():  #添加内置书籍  // 读取books目录下的文件
     if not book:
         continue
     if memcache.get(book.title): #使用memcache加速
@@ -66,7 +63,8 @@ for book in BookClasses():  #添加内置书籍
 
 
     if not b:
-        b = Book(title=book.title, description=book.description, builtin=True,  needs_subscription=book.needs_subscription, separate=False)
+        b = Book(title=book.title, description=book.description, builtin=True,
+                 needs_subscription=book.needs_subscription, separate=False)
         b.put()
         memcache.add(book.title, book.description, 86400)
 
