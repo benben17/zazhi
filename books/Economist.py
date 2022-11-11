@@ -10,8 +10,7 @@ def getBook():
 
 class Economist(BaseFeedBook):
     title = 'The Economist'
-    description = '''Global news and current affairs from a European
-                    perspective. Best downloaded on Friday mornings(GMT)'''
+    description = 'Global news and current affairs from a European perspective. Best downloaded on Friday mornings(GMT)'
     language = 'en'
     feed_encoding = "utf-8"
     page_encoding = "utf-8"
