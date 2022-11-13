@@ -12,7 +12,6 @@ import web
 import StringIO
 from PIL import Image
 import random
-
 from collections import OrderedDict
 from apps.BaseHandler import BaseHandler
 from apps.dbModels import *
@@ -102,7 +101,7 @@ class Worker(BaseHandler):
             pubtype = 'periodical:magazine:KindleEar'
         
         #修正Kindle固件5.9.x将作者显示为日期的BUG
-        author = local_time(authorfmt, tz) if authorfmt else 'KindleEar'
+        author = local_time(authorfmt, tz) if authorfmt else 'rss2Ebook'
         
         setMetaData(oeb, bookTitle, book4meta.language, local_time("%Y-%m-%d",tz), pubtype=pubtype, creator=author)
         oeb.container = ServerContainer(main.log)

@@ -5,8 +5,8 @@ KindleEar配置文件，请务必修改开始两个配置（如果使用uploader
 """
 
 # Your gmail account for sending mail to Kindle
-SRC_EMAIL = "librz.link@gmail.com"
-DOMAIN = "http://kindleear.appspot.com/"  # Your domain of app
+SRC_EMAIL = "leezhenhua17@gmail.com"
+DOMAIN = "https://benben10-191802.appspot.com/"  # Your domain of app
 
 TIMEZONE = 8  # Default timezone, you can modify it in webpage after deployed
 
@@ -16,8 +16,8 @@ DEFAULT_COVER = "cv_default.jpg"
 # default cover for merged-book, None indicates paste all covers into one, =DEFAULT_COVER enable the using of uploaded image.
 DEFAULT_COVER_BV = DEFAULT_COVER
 
-MY_FEEDS_TITLE = u'librz.link'
-MY_FEEDS_DESC = u'RSS from librz.link'
+MY_FEEDS_TITLE = u'rss2Ebook'
+MY_FEEDS_DESC = u'RSS from rss2Ebook'
 
 # default timeout for network connection
 CONNECTION_TIMEOUT = 60

@@ -46,6 +46,7 @@ class Setting(BaseHandler):
     @etagged()
     def GET(self, tips=None):
         user = self.getcurrentuser()
+
         if not user.ownfeeds.language:
             user.ownfeeds.language = "zh-cn"
 

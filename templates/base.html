@@ -99,7 +99,7 @@
         <!-- Header Navigation -->
         <div class="header pure-menu pure-menu-horizontal">
         {% block header -%}
-            <a href="/" class="pure-menu-heading pure-menu-link logo">KindleEar</a>
+            <a href="/" class="pure-menu-heading pure-menu-link logo">RSS2EPUB</a>
             {% block header_loginfo -%}
             <ul class="pure-menu-list home-menu">
                 {% if nickname -%}
@@ -148,9 +148,9 @@
                     <li class="pure-menu-item"><a href="/adv" class="pure-menu-link">{{_("Advanced")}}</a></li>
                     {% endif -%}
                     {% if current == "shared" -%}
-                    <li class="pure-menu-item pure-menu-selected"><span>{{_("Shared")}}</span></li>
+                    <li class="pure-menu-item pure-menu-selected"><span>{{_("LibraryRSS")}}</span></li>
                     {% else -%}
-                    <li class="pure-menu-item"><a href="/library" class="pure-menu-link">{{_("Shared")}}</a></li>
+                    <li class="pure-menu-item"><a href="/library" class="pure-menu-link">{{_("LibraryRSS")}}</a></li>
                     {% endif -%}
                 </ul>
             </div>

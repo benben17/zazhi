@@ -94,8 +94,6 @@ class RemoveLogs(BaseHandler):
         return "%s lines delivery log removed.<br />" % c
 
 # 修改/删除已推送期号的AJAX处理函数
-
-
 class LastDeliveredAjax(BaseHandler):
     __url__ = "/lastdelivered/(.*)"
 

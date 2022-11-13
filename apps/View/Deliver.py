@@ -24,7 +24,6 @@ class Deliver(BaseHandler):
         param = {"u":usr.name, "id":bookid}
         if feedsId:
             param['feedsId'] = feedsId
-        
         if usr.merge_books and not separate and not feedsId:
             self.queue2push[usr.name].append(str(bookid)) #合并推送
         else:

@@ -145,11 +145,11 @@ class BaseHandler(object):
         for i in range(SENDMAIL_RETRY_CNT+1):
             try:
                 if i < SENDMAIL_RETRY_CNT and sgenable and sgapikey:
-                    self.sendgrid_sendmail(sgapikey, SRC_EMAIL, to, "KindleEar %s" %
-                                           lctime, "Deliver from librz.link %s" % filename, attachments=[(filename, attachment), ])
+                    self.sendgrid_sendmail(sgapikey, SRC_EMAIL, to, "rss2Ebook %s" %
+                                           lctime, "Deliver from rss2Ebook %s" % filename, attachments=[(filename, attachment), ])
                 else:
-                    mail.send_mail(SRC_EMAIL, to, "KindleEar %s" % lctime,
-                                   "Deliver from librz.link "+filename, attachments=[(filename, attachment), ])
+                    mail.send_mail(SRC_EMAIL, to, "rss2Ebook %s" % lctime,
+                                   "Deliver from rss2Ebook "+filename, attachments=[(filename, attachment), ])
             except OverQuotaError as e:
                 if i < SENDMAIL_RETRY_CNT:
                     default_log.warn(
@@ -217,7 +217,7 @@ class BaseHandler(object):
     @classmethod
     def SendHtmlMail(self, name, to, title, html, attachments, tz=TIMEZONE, textcontent=None):
         if not textcontent or not isinstance(textcontent, basestring):
-            textcontent = "Deliver from librz.link, refers to html part."
+            textcontent = "Deliver from rss2Ebook, refers to html part."
 
         for i in range(SENDMAIL_RETRY_CNT+1):
             try:

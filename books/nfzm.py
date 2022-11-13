@@ -3,29 +3,31 @@
 from bs4 import BeautifulSoup
 from base import BaseFeedBook, URLOpener, string_of_tag
 
+
 def getBook():
     return NFZM
 
+
 class NFZM(BaseFeedBook):
-    title               = u'南方周末'
-    description         = u'在这里读懂中国 | 每周五更新 | 需要登录'
-    __author__          = 'mcfloundinho'
-    language            = 'zh-cn'
-    feed_encoding       = "utf-8"
-    page_encoding       = "utf-8"
-    mastheadfile        = "mh_nfzm.gif"
-    coverfile           = "cv_nfzm.jpg"
-    deliver_days        = ['Friday']
-    needs_subscription  = True
+    title = u'南方周末'
+    description = u'在这里读懂中国 | 每周五更新 | 需要登录'
+    __author__ = 'mcfloundinho'
+    language = 'zh-cn'
+    feed_encoding = "utf-8"
+    page_encoding = "utf-8"
+    mastheadfile = "mh_nfzm.gif"
+    coverfile = "cv_nfzm.jpg"
+    deliver_days = ['Friday']
+    needs_subscription = True
 
     def ParseFeedUrls(self):
         login_url = "http://passport.infzm.com/passport/login"
         content_url = "http://www.infzm.com/enews/infzm"
         urls = []
         opener = URLOpener(self.host, timeout=60)
-        login_form = {"loginname":self.account, "password":self.password}
+        login_form = {"loginname": self.account, "password": self.password}
         login_response = opener.open(login_url, data=login_form)
-        #opener.SaveCookies(login_response.header_msg.getheaders('Set-Cookie'))
+        # opener.SaveCookies(login_response.header_msg.getheaders('Set-Cookie'))
         result = opener.open(content_url)
         content = result.content.decode(self.feed_encoding)
         soup = BeautifulSoup(content, "lxml")

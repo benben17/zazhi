@@ -788,8 +788,8 @@ msgstr "请输入Sendgrid的ApiKey！"
 msgid "Email or Username"
 msgstr "邮箱或用户名"
 
-msgid "Shared"
-msgstr "网友分享"
+msgid "LibraryRSS"
+msgstr "RSS库"
 
 msgid "This feed has been successfully subscribed."
 msgstr "已经成功订阅了此订阅源。"

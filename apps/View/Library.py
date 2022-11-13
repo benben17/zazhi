@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 #A GAE web application to aggregate rss and send it to your kindle.
 #Visit https://github.com/cdhigh/KindleEar for the latest version
-import datetime, urlparse
+import datetime, urlparse,StringIO
 try:
     import json
 except ImportError:
@@ -13,7 +13,7 @@ from apps.BaseHandler import BaseHandler
 from apps.dbModels import *
 from lib.urlopener import URLOpener
 
-__auth_key__ = 'librz.link.luck!'
+__auth_key__ = 'rss2Ebook.com.luck!'
 
 #网友共享的订阅源数据
 class SharedLibrary(BaseHandler):
