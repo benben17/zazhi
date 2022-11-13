@@ -72,13 +72,5 @@ class AESCipher():
 
 
 if __name__ == '__main__':
-    send_days = ''
-    default_send_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    if send_days is not None and len(send_days) != 0:
-        send_days = send_days.split(',')
-        send_days = [send_day for send_day in send_days if send_day in default_send_days]
-        if len(send_days) == 0:
-            send_days = default_send_days
-    else:
-        send_days = default_send_days
-    print send_days
+    text = '''{"user_name":"admin"}'''
+    print AESCipher().aes_encrypt(text)

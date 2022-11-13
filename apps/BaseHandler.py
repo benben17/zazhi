@@ -6,7 +6,7 @@
 # cdhigh <https://github.com/cdhigh>
 # Contributors:
 # rexdf <https://github.com/rexdf>
-
+import json
 import os
 import datetime
 import logging
@@ -30,7 +30,7 @@ from google.appengine.api.mail_errors import (InvalidSenderError,
                                               InvalidAttachmentTypeError)
 from google.appengine.runtime.apiproxy_errors import (OverQuotaError,
                                                       DeadlineExceededError)
-
+__auth_key__ = 'rss2Ebook.com.luck!'
 #import main
 
 # URL请求处理类的基类，实现一些共同的工具函数
@@ -53,6 +53,15 @@ class BaseHandler(object):
             raise web.seeother(r'/needloginforajax' if forAjax else r'/login')
 
     @classmethod
+    def check_api_key(self,key=None):
+        res = json.dumps({"status": "failed", "msg": "key error"})
+        if key is None:
+            return res
+        if key != __auth_key__:  # key 有问题不抛错误信息
+            return res
+        return True
+
+    @classmethod
     def getcurrentuser(self, forAjax=False):
         if main.session.get('login') != 1 or not main.session.get('username'):
             raise web.seeother(r'/needloginforajax' if forAjax else r'/login')
@@ -61,6 +70,8 @@ class BaseHandler(object):
         if not u:
             raise web.seeother(r'/needloginforajax' if forAjax else r'/login')
         return u
+
+
 
     @classmethod
     def getsgapikey(self, name):

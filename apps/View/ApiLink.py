@@ -15,7 +15,7 @@ from apps.dbModels import *
 from apps.utils import new_secret_key
 from config import *
 from PIL import Image
-
+from google.appengine.api.datastore_errors import NeedIndexError
 __auth_key__ = 'rss2Ebook.com.luck!'
 
 
@@ -27,12 +27,12 @@ class SyncUser(BaseHandler):
     def __init__(self):
         super(SyncUser, self).__init__(setLang=False)
 
+
     def POST(self):
+        if not self.check_api_key(self.key):
+            return self.check_api_key(self.key)
+        res = {}
         webInput = web.input()
-        key = webInput.get('key')
-        res = {"status": "ok", "msg": ""}
-        if key != __auth_key__: # key 有问题不抛错误信息
-            return ""
         book_name = webInput.get('book_name') if webInput.get('book_name') else MY_FEEDS_TITLE
         user_name = webInput.get('user_name')
         to_email = webInput.get("to_email")
@@ -90,9 +90,10 @@ class AdvUploadCoverImageAjax(BaseHandler):
     MAX_IMAGE_PIXEL = 1024
     def __init__(self):
         self.webInput = web.input()
-        if self.key != __auth_key__:  # key 有问题不抛错误信息
-            return "error"
+
     def POST(self):
+        if not self.check_api_key(self.webInput.get('key')):
+            return self.check_api_key(self.webInput.get('key'))
         res = {"status": "ok", "msg": ""}
         user_name = self.webInput.get('user_name')
 
@@ -128,14 +129,11 @@ class FeedRSS(BaseHandler):
         super(FeedRSS, self).__init__(setLang=False)
         self.now = datetime.datetime.utcnow()
         self.webInput = web.input()
-        self.key = self.webInput.get('key')
         self.res = {"status": "ok", "msg": ""}
-        print self.webInput.get('user_name')
-        if self.key != __auth_key__:  # key 有问题不抛错误信息
-            return "error"
-
 
     def POST(self,mgrType):  # RSS 類
+        if not self.check_api_key(self.webInput.get('key')):
+            return self.check_api_key(self.webInput.get('key'))
         res = {"status": "ok", "msg": ""}
         user_name = self.webInput.get('user_name')
         if mgrType.lower() == 'myrss':  #RSS我的訂閱
@@ -221,5 +219,29 @@ class ApiFeedBook(BaseHandler):
     def check_words(self,words):
         return lambda x: x and frozenset(words.split()).intersection(x.split())
 
+
+class MyLogs(BaseHandler,):
+    __url__ = "/api/v2/my/logs"
+    def __init__(self):
+        super(MyLogs, self).__init__(setLang=False)
+        self.webInput = web.input()
+        self.res = {"status": "ok", "msg": "", "data":[]}
+    def POST(self):
+        # 測試加密
+        # import apps.AESCipher as AESCipher
+        # input = AESCipher.AESCipher().aes_decrypt(self.webInput)
+        # in_json = json.loads(input)
+        # return in_json.get('user_name')
+        if not self.check_api_key(self.webInput.get('key')):
+            return self.check_api_key(self.webInput.get('key'))
+        user_name = self.webInput.get('user_name')
+        try:
+            my_logs = DeliverLog.all().filter("username = ", user_name).order('-time').fetch(limit=100)
+        except NeedIndexError:  # 很多人不会部署，经常出现没有建立索引的情况，干脆碰到这种情况直接消耗CPU时间自己排序得了
+            my_logs = sorted(DeliverLog.all().filter("username = ", user_name), key=attrgetter('time'), reverse=True)[:50]
+        for log in my_logs:
+            my_log = {'to': log.to,'size': log.size,'datetime': log.datetime.strftime('%Y-%m-%d %H:%M:00') ,'book': log.book,'status': log.status}
+            self.res['data'].append(my_log)
+        return json.dumps(self.res)
 
 
