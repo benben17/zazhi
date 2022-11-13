@@ -9,7 +9,7 @@ except ImportError:
     import simplejson as json
 
 import web
-from google.appengine.api import memcache
+from google.appengine.api import memcache,taskqueue
 from apps.BaseHandler import BaseHandler
 from apps.dbModels import *
 from apps.utils import new_secret_key
@@ -65,7 +65,7 @@ class SyncUser(BaseHandler):
                         kindle_email=to_email, enable_send=True, send_time=8, timezone=TIMEZONE,
                         send_days=send_days,book_type="epub", device='kindle', ownfeeds=myfeeds,
                         remove_hyperlinks='image',book_mode='periodical',titlefmt='YY-MM-DD',
-                        merge_books=True, secret_key=secret_key, expiration_days=expiration_days)
+                        merge_books=False, secret_key=secret_key, expiration_days=expiration_days)
             if webInput.get('expires') is None:
                 au.expires
             else:
@@ -191,18 +191,30 @@ class FeedRSS(BaseHandler):
             if rss:
                 html = ' 不可用 %s  %s' % (rss.title,rss.url)
                 BaseHandler.SendHtmlMail(name=rss.title, to=SRC_EMAIL, title=rss.title, html=html)
+        elif mgrType.lower() == 'setsendtime':  # 每周 发送  oldest_article = 7 每天 发送1
+            user = KeUser.all().filter("name = ", user_name).get()
+            book = user.ownfeeds
+            if self.webInput.get('frequency') == 'week': # 每周 发送  oldest_article = 7 每天 发送1
+                book.oldest_article = 1
+            else:
+                book.oldest_article = 7
+            if not self.webInput.get('send_day'):  # 用户定义 哪天发送 不定义默认为周五 早上8点
+                user.send_days = ['Friday']
+            else:
+                user.send_days = [self.webInput.get('send_day')]
+            user.send_time = self.webInput.get('send_time',8)
+            book.put
+            user.put
+
+            return json.dumps(res)
 
 
 class ApiFeedBook(BaseHandler):
-    __url__ = "/api/v2/feed/book"
+    __url__ = "/api/v2/feed/book/(.*)"
     def __init__(self):
         super(ApiFeedBook, self).__init__(setLang=False)
-        self.now = datetime.datetime.utcnow()
         self.webInput = web.input()
-        self.key = self.webInput.get('key')
-        self.res = {"status": "ok", "msg": ""}
-        # if self.key != __auth_key__:  # key 有问题不抛错误信息
-        #     return "error"
+
     def GET(self):
         BASE = 'https://www.nature.com'
         from lib.urlopener import URLOpener
@@ -214,10 +226,24 @@ class ApiFeedBook(BaseHandler):
             'img', attrs={'data-test': 'issue-cover-image'}
         )
         return 'https:'+res['src']
-        # cover_url = 'https:' + ['src']
-        # return cover_url
+
+    def POST(self,mgrType):
+        user_name = self.webInput.get('user_name')
+        if mgrType.lower() == 'deliver':
+            user = KeUser.all().filter("name = ", user_name).get()
+            book = user.ownfeeds
+            self.queueit(user, book.key().id(), book.separate, None)
+            # self.flushqueue()
+            return json.dumps({'status': 'ok',"msg":"add task"})
+
     def check_words(self,words):
         return lambda x: x and frozenset(words.split()).intersection(x.split())
+
+    def queueit(self, usr, bookid, separate, feedsId=None):
+        param = {"u": usr.name, "id": bookid}
+        taskqueue.add(url='/worker', queue_name="deliverqueue1", method='GET',
+                params=param, target="worker")
+
 
 
 class MyLogs(BaseHandler,):

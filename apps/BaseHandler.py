@@ -159,7 +159,7 @@ class BaseHandler(object):
                     self.sendgrid_sendmail(sgapikey, SRC_EMAIL, to, "rss2Ebook %s" %
                                            lctime, "Deliver from rss2Ebook %s" % filename, attachments=[(filename, attachment), ])
                 else:
-                    mail.send_mail(SRC_EMAIL, to, "rss2Ebook %s" % lctime,
+                    mail.send_mail(SRC_EMAIL, to, title + ' ' + lctime,
                                    "Deliver from rss2Ebook "+filename, attachments=[(filename, attachment), ])
             except OverQuotaError as e:
                 if i < SENDMAIL_RETRY_CNT:
