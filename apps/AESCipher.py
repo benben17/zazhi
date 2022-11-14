@@ -73,4 +73,5 @@ class AESCipher():
 
 if __name__ == '__main__':
     text = '''{"user_name":"admin"}'''
+    # print text_decrypt(text)
     print AESCipher().aes_encrypt(text)

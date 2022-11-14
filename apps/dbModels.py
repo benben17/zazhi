@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
+'''
 #A GAE web application to aggregate rss and send it to your kindle.
 #Visit https://github.com/cdhigh/KindleEar for the latest version
 #Author:
 # cdhigh <https://github.com/cdhigh>
 #Contributors:
 # rexdf <https://github.com/rexdf>
+'''
+
 from operator import attrgetter
 from google.appengine.ext import db
 from google.appengine.api import memcache

@@ -31,7 +31,7 @@ from google.appengine.api.mail_errors import (InvalidSenderError,
 from google.appengine.runtime.apiproxy_errors import (OverQuotaError,
                                                       DeadlineExceededError)
 __auth_key__ = 'rss2Ebook.com.luck!'
-#import main
+import main
 
 # URL请求处理类的基类，实现一些共同的工具函数
 
@@ -53,7 +53,7 @@ class BaseHandler(object):
             raise web.seeother(r'/needloginforajax' if forAjax else r'/login')
 
     @classmethod
-    def check_api_key(self,key=None):
+    def check_api_key(self, key=None):
         res = json.dumps({"status": "failed", "msg": "key error"})
         if key is None:
             return res
@@ -65,13 +65,10 @@ class BaseHandler(object):
     def getcurrentuser(self, forAjax=False):
         if main.session.get('login') != 1 or not main.session.get('username'):
             raise web.seeother(r'/needloginforajax' if forAjax else r'/login')
-
         u = KeUser.all().filter("name = ", main.session.get('username', '')).get()
         if not u:
             raise web.seeother(r'/needloginforajax' if forAjax else r'/login')
         return u
-
-
 
     @classmethod
     def getsgapikey(self, name):

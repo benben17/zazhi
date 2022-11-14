@@ -2,22 +2,20 @@
 # -*- coding:utf-8 -*-
 #A GAE web application to aggregate rss and send it to your kindle.
 #Visit https://github.com/cdhigh/KindleEar for the latest version
-import datetime, urlparse,hashlib,StringIO
+import datetime,urlparse,hashlib,StringIO
 try:
     import json
 except ImportError:
     import simplejson as json
 
 import web
-from google.appengine.api import memcache,taskqueue
+from google.appengine.api import memcache,taskqueue,db
 from apps.BaseHandler import BaseHandler
 from apps.dbModels import *
 from apps.utils import new_secret_key
 from config import *
 from PIL import Image
 from google.appengine.api.datastore_errors import NeedIndexError
-__auth_key__ = 'rss2Ebook.com.luck!'
-
 
 '''
 同步用户
