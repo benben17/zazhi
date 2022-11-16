@@ -209,8 +209,11 @@ class HandleMail(InboundMailHandler):
                     }
             taskqueue.add(url='/url2book', queue_name="deliverqueue1", method='GET',
                 params=param, target='worker')
-        else: #直接转发邮件正文
+        else:
+            '''
+            #直接转发邮件正文
             #先判断是否有图片
+            '''
             from lib.makeoeb import MimeFromFilename
             hasimage = False
             if hasattr(message, 'attachments'):

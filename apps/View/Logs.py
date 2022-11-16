@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-# A GAE web application to aggregate rss and send it to your kindle.
+# A GAE web application to aggregate rss and send it to your Kindle.
 # Visit https://github.com/cdhigh/KindleEar for the latest version
 # Contributors:
 # rexdf <https://github.com/rexdf>
+
 from operator import attrgetter
 import datetime
 from apps.BaseHandler import BaseHandler

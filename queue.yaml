@@ -1,5 +1,4 @@
 queue:
-
 - name: deliverqueue1
   rate: 2/m
   bucket_size: 2

@@ -2,9 +2,11 @@ cron:
 - description: add deliver task to queue
   url: /deliver
   schedule: every 1 hours
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_doublings: 5
 
 - description: remove old logs
   url: /removelogs
   schedule: every day 03:00
-  timezone: Asia/Shanghai
-  
+#  timezone: UTC

@@ -6,32 +6,28 @@
 # cdhigh <https://github.com/cdhigh>
 # Contributors:
 # rexdf <https://github.com/rexdf>
-import json
-import os
-import datetime
-import logging
-import __builtin__
-import hashlib
-import time
 import base64
-import urlparse
 import imghdr
+import json
+import time
+import urlparse
 
-import web
-import jinja2
-from bs4 import BeautifulSoup
-from utils import *
-from config import *
-from apps.dbModels import *
-from google.appengine.api import mail
 import sendgrid
-from sendgrid.helpers.mail import Email, Content, Mail, Attachment
+import web
+from bs4 import BeautifulSoup
+from google.appengine.api import mail
 from google.appengine.api.mail_errors import (InvalidSenderError,
                                               InvalidAttachmentTypeError)
 from google.appengine.runtime.apiproxy_errors import (OverQuotaError,
                                                       DeadlineExceededError)
+from sendgrid.helpers.mail import Email, Content, Mail, Attachment
+
+from apps.dbModels import *
+from config import *
+from utils import *
+
 __auth_key__ = 'rss2Ebook.com.luck!'
-import main
+# import main
 
 # URL请求处理类的基类，实现一些共同的工具函数
 

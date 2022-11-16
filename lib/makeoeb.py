@@ -124,7 +124,7 @@ def getOpts(output_type='kindle', book_mode='periodical'):
     setattr(opts, "book_mode", book_mode)
     return opts
     
-def setMetaData(oeb, title='Feeds', lang='zh-cn', date=None, creator='KindleEar',
+def setMetaData(oeb, title='Feeds', lang='zh-cn', date=None, creator='rss2Ebook',
     pubtype='periodical:magazine:KindleEar'): #pubtype='periodical:magazine:KindleEar' | 'book:book:KindleEar'
     oeb.metadata.add('language', lang if lang else 'zh-cn')
     oeb.metadata.add('creator', creator)

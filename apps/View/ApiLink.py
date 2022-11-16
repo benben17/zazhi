@@ -2,14 +2,19 @@
 # -*- coding:utf-8 -*-
 #A GAE web application to aggregate rss and send it to your kindle.
 #Visit https://github.com/cdhigh/KindleEar for the latest version
-import datetime,urlparse,hashlib,StringIO
+
+import StringIO
+import datetime
+import hashlib
+
 try:
     import json
 except ImportError:
     import simplejson as json
-
+from collections import defaultdict
 import web
-from google.appengine.api import memcache,taskqueue,db
+from google.appengine.api import memcache
+from google.appengine.api import taskqueue
 from apps.BaseHandler import BaseHandler
 from apps.dbModels import *
 from apps.utils import new_secret_key
@@ -20,108 +25,141 @@ from google.appengine.api.datastore_errors import NeedIndexError
 '''
 同步用户
 '''
+
+default_send_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
 class SyncUser(BaseHandler):
-    __url__ = "/api/v2/sync"
+    __url__ = "/api/v2/sync/user/(.*)"
     def __init__(self):
         super(SyncUser, self).__init__(setLang=False)
+        self.key = web.input().get('key')
+        self.res = {"status": "ok", "msg": ""}
+        self.webInput = web.input()
 
-
-    def POST(self):
+    def POST(self,mgrType):
         if not self.check_api_key(self.key):
             return self.check_api_key(self.key)
         res = {}
         webInput = web.input()
-        book_name = webInput.get('book_name') if webInput.get('book_name') else MY_FEEDS_TITLE
         user_name = webInput.get('user_name')
-        to_email = webInput.get("to_email")
-        send_days = webInput.get('send_days')
-        expiration_days = int(webInput.get('expiration_days')) if webInput.get('expiration_days') else 30
-        print send_days
-        # 用户必须用户名和 邮箱
-        if not user_name or not to_email:
-            res['status'] = "failed"
-            res["msg"] = "user or email is empty"
-            return json.dumps(res)
+        if mgrType.lower() == 'add':
+            book_name = webInput.get('book_name') if webInput.get('book_name') else MY_FEEDS_TITLE
+            to_email = webInput.get("to_email")
+            send_days = webInput.get('send_days')
+            expiration_days = int(webInput.get('expiration_days')) if webInput.get('expiration_days') else 30
+            print send_days
+            # 用户必须用户名和 邮箱
+            if not user_name or not to_email:
+                self.res['status'] = "failed"
+                self.res["msg"] = "user or email is empty"
+                return json.dumps(self.res)
 
-        # 判断传值是否正确，不正确默认
-        default_send_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        if send_days is not None and len(send_days) != 0:
-            send_days = send_days.split(',')
-            send_days = [send_day for send_day in send_days if send_day in default_send_days]
-            if len(send_days) == 0:
-                send_days = default_send_days
-        else:
-            send_days = default_send_days
-        u = KeUser.all().filter("name = ",user_name ).get()
-        if not u:
-            myfeeds = Book(title=book_name, description=MY_FEEDS_DESC,
-                           builtin=False, keep_image=True, oldest_article=7,
-                           needs_subscription=False, separate=False)
-            myfeeds.put()
-            secret_key = new_secret_key()
-            au = KeUser(name=user_name, passwd=hashlib.md5(to_email + secret_key).hexdigest(),
-                        kindle_email=to_email, enable_send=True, send_time=8, timezone=TIMEZONE,
-                        send_days=send_days,book_type="epub", device='kindle', ownfeeds=myfeeds,
-                        remove_hyperlinks='image',book_mode='periodical',titlefmt='YY-MM-DD',
-                        merge_books=False, secret_key=secret_key, expiration_days=expiration_days)
-            if webInput.get('expires') is None:
-                au.expires
+            # 判断传值是否正确，不正确默认
+
+            if send_days is not None and len(send_days) != 0:
+                send_days = send_days.split(',')
+                send_days = [send_day for send_day in send_days if send_day in default_send_days]
+                if len(send_days) == 0:
+                    send_days = default_send_days
             else:
-                au.expires = datetime.datetime.utcnow() + datetime.timedelta(days=expiration_days)
-            au.put()
+                send_days = default_send_days
+            u = KeUser.all().filter("name = ",user_name ).get()
+            if not u:
+                myfeeds = Book(title=book_name, description=MY_FEEDS_DESC,
+                               builtin=False, keep_image=True, oldest_article=7,
+                               needs_subscription=False, separate=False)
+                myfeeds.put()
+                secret_key = new_secret_key()
+                au = KeUser(name=user_name, passwd=hashlib.md5(to_email + secret_key).hexdigest(),
+                            kindle_email=to_email, enable_send=True, send_time=8, timezone=TIMEZONE,
+                            send_days=send_days,book_type="epub", device='kindle', ownfeeds=myfeeds,
+                            remove_hyperlinks='image',book_mode='periodical',titlefmt='YY-MM-DD',
+                            merge_books=False, secret_key=secret_key, expiration_days=expiration_days)
+                if webInput.get('expires') is None:
+                    au.expires
+                else:
+                    au.expires = datetime.datetime.utcnow() + datetime.timedelta(days=expiration_days)
+                au.put()
 
-            book_rss = au.ownfeeds
-            print book_rss
-            book_rss.language = webInput.get("lng", "en-us")
-            book_rss.oldest_article = int(webInput.get('oldest', 7))
-            book_rss.users = [au.name]
-            book_rss.put()
-        else:
-            res['msg'] = 'username alread exist!'
-            res['status'] = 'failed'
+                book_rss = au.ownfeeds
+                book_rss.language = webInput.get("lng", "zh-cn")
+                book_rss.oldest_article = int(webInput.get('oldest', 7))
+                book_rss.users = [au.name]
+                book_rss.put()
+                book = au.ownfeeds
+                book.put()
 
-        return json.dumps(res)
+            else:
+                self.res['msg'] = 'username alread exist!'
+                self.res['status'] = 'failed'
 
-# 设置封面图片
-class AdvUploadCoverImageAjax(BaseHandler):
-    __url__ = "/api/v2/sync/user/cover"
-    MAX_IMAGE_PIXEL = 1024
-    def __init__(self):
-        self.webInput = web.input()
+            return json.dumps(self.res)
+        elif mgrType.lower() == 'seting':  # 每周 发送  oldest_article = 7 每天 发送1
+            user = KeUser.all().filter("name = ", user_name).get()
+            if not user:
+                self.res['status'] = 'failed'
+                return json.dumps(self.res)
+            book = user.ownfeeds
+            if self.webInput.get('frequency') == 'week':  # 每周发送  oldest_article = 7 每天 发送1
+                book.oldest_article = 1
+            elif self.webInput.get('frequency') == 'every':
+                book.oldest_article = 7
+            book.put()
+            if not self.webInput.get('send_day'):  # 用户定义 哪天发送 不定义默认为周五 早上8点
+                user.send_days = ['Friday']
+            else:
+                if self.webInput.get('send_day') in default_send_days:
+                    user.send_days = []
+            user.send_time = self.webInput.get('send_time', 8)
+            user.device = webInput.get('devicetype') or 'kindle'
+            user.titlefmt = webInput.get('titlefmt') or '%Y-%m-%d'
+            user.timezone = int(webInput.get('timezone', TIMEZONE))
+            user.put()
+            return json.dumps(self.res)
+        elif mgrType.lower == 'cover':# 设置封面图片
+            user = KeUser.all().filter("name = ", user_name).get()
+            if not user:
+                return json.dumps({"status": "failed", "msg": "user not exists!"})
+            try:
+                x = web.input(coverfile={})
+                file_ = x['coverfile'].file
+                if user and file_:
+                    # 将图像转换为JPEG格式，同时限制分辨率不超过1024
+                    img = Image.open(file_)
+                    width, height = img.size
+                    fmt = img.format
+                    if (width > self.MAX_IMAGE_PIXEL) or (height > self.MAX_IMAGE_PIXEL):
+                        ratio = min(float(self.MAX_IMAGE_PIXEL) / float(width),
+                                    float(self.MAX_IMAGE_PIXEL) / float(height))
+                        img = img.resize((int(width * ratio), int(height * ratio)))
+                    data = StringIO.StringIO()
+                    img.save(data, 'JPEG')
+                    user.cover = db.Blob(data.getvalue())
+                    user.put()
+            except Exception as e:
+                res['status'] = 'failed'
+                res['msg'] = str(e)
+            return json.dumps(self.res)
 
-    def POST(self):
-        if not self.check_api_key(self.webInput.get('key')):
-            return self.check_api_key(self.webInput.get('key'))
-        res = {"status": "ok", "msg": ""}
-        user_name = self.webInput.get('user_name')
-
-        user = KeUser.all().filter("name = ", user_name).get()
-        if not user:
-            return json.dumps({"status": "failed", "msg": "user not exists!"})
-        try:
-            x = web.input(coverfile={})
-            file_ = x['coverfile'].file
-            if user and file_:
-                # 将图像转换为JPEG格式，同时限制分辨率不超过1024
-                img = Image.open(file_)
-                width, height = img.size
-                fmt = img.format
-                if (width > self.MAX_IMAGE_PIXEL) or (height > self.MAX_IMAGE_PIXEL):
-                    ratio = min(float(self.MAX_IMAGE_PIXEL) / float(width), float(self.MAX_IMAGE_PIXEL) / float(height))
-                    img = img.resize((int(width * ratio), int(height * ratio)))
-                data = StringIO.StringIO()
-                img.save(data, 'JPEG')
-                user.cover = db.Blob(data.getvalue())
+        elif mgrType.lower == 'upgrade':  # 用户升级 使用时长
+            user = KeUser.all().filter("name = ", user_name).get()
+            if not user:
+                return json.dumps({"status": "failed", "msg": "user not exists!"})
+            try:
+                if not webInput.get('expires') is None: # 判断是否为空
+                    user.expires = webInput.get('expires')
+                if not webInput.get('expiration_days') is None:  # 判断是否为空
+                    user.expiration_days = webInput.get('expiration_days')
                 user.put()
-        except Exception as e:
-            ret = str(e)
+            except Exception as e:
+                self.res['status'] = 'failed'
+                self.res['msg'] = str(e)
+            return json.dumps(self.res)
 
-        return ret
-
-'''
-訂閱
-'''
 class FeedRSS(BaseHandler):
+    '''
+    RSS 订阅 / 删除
+    '''
     __url__ = "/api/v2/rss/(.*)"
     def __init__(self):
         super(FeedRSS, self).__init__(setLang=False)
@@ -162,7 +200,7 @@ class FeedRSS(BaseHandler):
             assert user.ownfeeds
             # 判断是否重复
             user_feed_urls = [item.url for item in user.ownfeeds.feeds]
-            print user_feed_urls
+            # print user_feed_urls
             if url in user_feed_urls:
                 res['msg'] = 'rss already subscribed!'
                 return json.dumps(res)
@@ -170,7 +208,9 @@ class FeedRSS(BaseHandler):
                       time=datetime.datetime.utcnow())
             fd.put()
             memcache.delete('%d.feedscount' % user.ownfeeds.key().id())
+            res['msg'] = fd.key().id()
             return json.dumps(res)
+
         elif mgrType == 'del':  #订阅删除
             feed_id = self.webInput.get('feed_id')
             if len(feed_id) != 0:
@@ -189,22 +229,7 @@ class FeedRSS(BaseHandler):
             if rss:
                 html = ' 不可用 %s  %s' % (rss.title,rss.url)
                 BaseHandler.SendHtmlMail(name=rss.title, to=SRC_EMAIL, title=rss.title, html=html)
-        elif mgrType.lower() == 'setsendtime':  # 每周 发送  oldest_article = 7 每天 发送1
-            user = KeUser.all().filter("name = ", user_name).get()
-            book = user.ownfeeds
-            if self.webInput.get('frequency') == 'week': # 每周 发送  oldest_article = 7 每天 发送1
-                book.oldest_article = 1
-            else:
-                book.oldest_article = 7
-            if not self.webInput.get('send_day'):  # 用户定义 哪天发送 不定义默认为周五 早上8点
-                user.send_days = ['Friday']
-            else:
-                user.send_days = [self.webInput.get('send_day')]
-            user.send_time = self.webInput.get('send_time',8)
-            book.put
-            user.put
 
-            return json.dumps(res)
 
 
 class ApiFeedBook(BaseHandler):
@@ -212,26 +237,23 @@ class ApiFeedBook(BaseHandler):
     def __init__(self):
         super(ApiFeedBook, self).__init__(setLang=False)
         self.webInput = web.input()
-
-    def GET(self):
-        BASE = 'https://www.nature.com'
-        from lib.urlopener import URLOpener
-        from bs4 import BeautifulSoup
-        opener = URLOpener(BASE)
-        result = opener.open(BASE+'/nature/current-issue')
-        soup = BeautifulSoup(result.content,'lxml')
-        res =  soup.find(
-            'img', attrs={'data-test': 'issue-cover-image'}
-        )
-        return 'https:'+res['src']
-
     def POST(self,mgrType):
         user_name = self.webInput.get('user_name')
+        if not user_name:
+            return json.dumps({'status': 'failed', "msg": "user_name empty!"})
+        user = KeUser.all().filter("name = ", user_name).get()
+        if not user:
+            return json.dumps({'status': 'failed',"msg":"user not exists"})
+        self.queue2push = defaultdict(list)
         if mgrType.lower() == 'deliver':
-            user = KeUser.all().filter("name = ", user_name).get()
-            book = user.ownfeeds
-            self.queueit(user, book.key().id(), book.separate, None)
-            # self.flushqueue()
+            books = Book.all()
+            bks = [item for item in books if user_name in item.users]
+            if len(bks) == 0:
+                return json.dumps({'status': 'failed',"msg":_("No book to deliver!")})
+            for book in bks:
+                self.queueit(user, book.key().id(), book.separate, None)
+                # print book.key().id,"11111"
+            self.flushqueue()
             return json.dumps({'status': 'ok',"msg":"add task"})
 
     def check_words(self,words):
@@ -241,21 +263,25 @@ class ApiFeedBook(BaseHandler):
         param = {"u": usr.name, "id": bookid}
         taskqueue.add(url='/worker', queue_name="deliverqueue1", method='GET',
                 params=param, target="worker")
+    def flushqueue(self):
+        for name in self.queue2push:
+            param = {'u':name, 'id':','.join(self.queue2push[name])}
+            taskqueue.add(url='/worker', queue_name="deliverqueue1", method='GET',
+                params=param, target="worker")
+        self.queue2push = defaultdict(list)
 
 
 
-class MyLogs(BaseHandler,):
-    __url__ = "/api/v2/my/logs"
+class MyDeliverLogs(BaseHandler,):
+    '''
+    推送日志
+    '''
+    __url__ = "/api/v2/my/deliver/logs"
     def __init__(self):
         super(MyLogs, self).__init__(setLang=False)
         self.webInput = web.input()
         self.res = {"status": "ok", "msg": "", "data":[]}
     def POST(self):
-        # 測試加密
-        # import apps.AESCipher as AESCipher
-        # input = AESCipher.AESCipher().aes_decrypt(self.webInput)
-        # in_json = json.loads(input)
-        # return in_json.get('user_name')
         if not self.check_api_key(self.webInput.get('key')):
             return self.check_api_key(self.webInput.get('key'))
         user_name = self.webInput.get('user_name')
@@ -266,6 +292,9 @@ class MyLogs(BaseHandler,):
         for log in my_logs:
             my_log = {'to': log.to,'size': log.size,'datetime': log.datetime.strftime('%Y-%m-%d %H:%M:00') ,'book': log.book,'status': log.status}
             self.res['data'].append(my_log)
+
+
+
         return json.dumps(self.res)
 
 
