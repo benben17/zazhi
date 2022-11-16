@@ -114,6 +114,7 @@ class SyncUser(BaseHandler):
             user.device = webInput.get('devicetype') or 'kindle'
             user.titlefmt = webInput.get('titlefmt') or '%Y-%m-%d'
             user.timezone = int(webInput.get('timezone', TIMEZONE))
+            user.kindle_email = int(webInput.get('receive_email')) or user.kindle_email
             user.put()
             return json.dumps(self.res)
         elif mgrType.lower == 'cover':# 设置封面图片
