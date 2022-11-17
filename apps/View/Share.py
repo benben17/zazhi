@@ -113,7 +113,7 @@ class Share(BaseHandler):
         if html:
             self.SendHtmlMail(user.name, to, title, html.encode('utf-8'), attachments, user.timezone)
             info = _("'%(title)s'<br/><br/>Saved to %(act)s [%(email)s] success.") % ({'title':title,'act':action,'email':hide_email(to)})
-            info += '<br/><p style="text-align:right;color:silver;">by KindleEar </p>'
+            info += '<br/><p style="text-align:right;color:silver;">by rss2Ebook </p>'
             main.log.info(info)
             web.header('Content-type', "text/html; charset=utf-8")
             info = u"""<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>

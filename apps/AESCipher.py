@@ -72,5 +72,7 @@ class Encipher:
 if __name__ == '__main__':
     text = '''{"user_name":"admin"}'''
     # print text_decrypt(text)
-    print(Encipher().aes_encrypt(text))
-    print(Encipher('oyWu2WrM/124dRYDGJdJtZ+GLee1NSpuwkFFshpIjlc=').aes_decrypt())
+    # print(Encipher().aes_encrypt(text))
+    # print(Encipher('oyWu2WrM/124dRYDGJdJtZ+GLee1NSpuwkFFshpIjlc=').aes_decrypt())
+    feedsId="123|aaa"
+    print([int(item) for item in feedsId.split('|') if item.isdigit()])

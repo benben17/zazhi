@@ -25,9 +25,6 @@ from google.appengine.api.datastore_errors import NeedIndexError
 '''
 同步用户
 '''
-
-
-
 class SyncUser(BaseHandler):
     __url__ = "/api/v2/sync/user/(.*)"
     def __init__(self):
@@ -35,6 +32,7 @@ class SyncUser(BaseHandler):
         self.key = web.input().get('key')
         self.res = {"status": "ok", "msg": ""}
         self.webInput = web.input()
+        self.MAX_IMAGE_PIXEL = 1024
 
     def POST(self,mgrType):
         if not self.check_api_key(self.key):
@@ -206,14 +204,13 @@ class FeedRSS(BaseHandler):
         elif mgrType == 'del':  #订阅删除
             feed_id = self.webInput.get('feed_id')
             if len(feed_id) != 0:
-
                 feed = Feed.get_by_id(int(feed_id))
                 if feed:
                     feed.delete()
                     return json.dumps(res)
                 else:
                     res['status'] = 'failed'
-                    res['msg'] = 'The feed(%d) not exist!' % feed_id
+                    res['msg'] = 'The feed(%d) not exist!'.format(feed_id)
                     return json.dumps(res)
         elif mgrType.lower() == 'invalid':
             feed_id = self.webInput.get('feed_id')
@@ -221,14 +218,12 @@ class FeedRSS(BaseHandler):
             if rss:
                 html = ' 不可用 %s  %s' % (rss.title,rss.url)
                 BaseHandler.SendHtmlMail(name=rss.title, to=SRC_EMAIL, title=rss.title, html=html)
-
-
-
 class ApiFeedBook(BaseHandler):
     __url__ = "/api/v2/feed/book/(.*)"
     def __init__(self):
         super(ApiFeedBook, self).__init__(setLang=False)
         self.webInput = web.input()
+        self.queue2push = defaultdict(list)
     def POST(self,mgrType):
         user_name = self.webInput.get('user_name')
         if not user_name:
@@ -236,14 +231,15 @@ class ApiFeedBook(BaseHandler):
         user = KeUser.all().filter("name = ", user_name).get()
         if not user:
             return json.dumps({'status': 'failed',"msg":"user not exists"})
-        self.queue2push = defaultdict(list)
+
         if mgrType.lower() == 'deliver':
+            feed_id = self.webInput.get('feed_id')
             books = Book.all()
             bks = [item for item in books if user_name in item.users]
             if len(bks) == 0:
-                return json.dumps({'status': 'failed',"msg":_("No book to deliver!")})
+                return json.dumps({'status': 'failed',"msg":"No book to deliver!"})
             for book in bks:
-                self.queueit(user, book.key().id(), book.separate, None)
+                self.queueit(user, book.key().id(), book.separate, feed_id)
                 # print book.key().id,"11111"
             self.flushqueue()
             return json.dumps({'status': 'ok',"msg":"add task"})
@@ -251,8 +247,10 @@ class ApiFeedBook(BaseHandler):
     def check_words(self,words):
         return lambda x: x and frozenset(words.split()).intersection(x.split())
 
-    def queueit(self, usr, bookid, separate, feedsId=None):
-        param = {"u": usr.name, "id": bookid}
+    def queueit(self, usr, book_id, separate, feed_id=None):
+        param = {"u": usr.name, "id": book_id}
+        if feed_id:
+            param['feedsId'] = feed_id
         taskqueue.add(url='/worker', queue_name="deliverqueue1", method='GET',
                 params=param, target="worker")
     def flushqueue(self):
@@ -265,9 +263,9 @@ class ApiFeedBook(BaseHandler):
 
 
 class MyDeliverLogs(BaseHandler,):
-    '''
+    """
     推送日志
-    '''
+    """
     __url__ = "/api/v2/my/deliver/logs"
     def __init__(self):
         super(MyDeliverLogs, self).__init__(setLang=False)

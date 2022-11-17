@@ -1185,9 +1185,9 @@ class BaseFeedBook:
     # 生成保存内容或分享文章链接的KindleEar调用链接
     def MakeShareLink(self, sharetype, user, url, soup):
         if sharetype in ('evernote', 'wiz'):
-            href = "%s/share?act=%s&u=%s&url=" % (DOMAIN, sharetype, user.name)
+            href = "%s/share?act=%s&u=%s&url=".format(DOMAIN, sharetype, user.name)
         elif sharetype == 'pocket':
-            href = '%s/share?act=pocket&u=%s&h=%s&t=%s&url=' % (DOMAIN, user.name, (hashlib.md5(user.pocket_acc_token_hash or '').hexdigest()),
+            href = '%s/share?act=pocket&u=%s&h=%s&t=%s&url='.format(DOMAIN, user.name, (hashlib.md5(user.pocket_acc_token_hash or '').hexdigest()),
                                                                 soup.html.head.title.string)
         elif sharetype == 'instapaper':
             href = '%s/share?act=instapaper&u=%s&n=%s&t=%s&url=' % (
