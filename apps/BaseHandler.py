@@ -317,3 +317,4 @@ class BaseHandler(object):
                         img['src'] = data
 
         return unicode(soup)
+

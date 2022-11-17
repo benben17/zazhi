@@ -7,7 +7,8 @@ KindleEar配置文件，请务必修改开始两个配置（如果使用uploader
 # Your gmail account for sending mail to Kindle
 SRC_EMAIL = "leezhenhua17@gmail.com"
 DOMAIN = "https://benben10-191802.appspot.com/"  # Your domain of app
-
+# 默认发送
+DEFAULT_SEND_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 TIMEZONE = 8  # Default timezone, you can modify it in webpage after deployed
 
 DEFAULT_MASTHEAD = "mh_default.gif"  # default masthead

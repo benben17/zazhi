@@ -26,7 +26,6 @@ class SharedLibrary(BaseHandler):
         shared_data = []
 
         for d in LibRss.all().fetch(limit=10000):
-            print d.title
             shared_data.append({'t': d.title, 'u': d.url, 'f': d.isfulltext, 'c': d.category, 's': d.subscribed,
                                 'd': int((d.created_time - datetime.datetime(1970, 1, 1)).total_seconds())})
         tips='test'

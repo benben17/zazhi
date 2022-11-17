@@ -6,7 +6,7 @@
 import StringIO
 import datetime
 import hashlib
-
+from apps.AESCipher import Encipher
 try:
     import json
 except ImportError:
@@ -26,7 +26,7 @@ from google.appengine.api.datastore_errors import NeedIndexError
 同步用户
 '''
 
-default_send_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
 
 class SyncUser(BaseHandler):
     __url__ = "/api/v2/sync/user/(.*)"
@@ -45,9 +45,7 @@ class SyncUser(BaseHandler):
         if mgrType.lower() == 'add':
             book_name = webInput.get('book_name') if webInput.get('book_name') else MY_FEEDS_TITLE
             to_email = webInput.get("to_email")
-            send_days = webInput.get('send_days')
             expiration_days = int(webInput.get('expiration_days')) if webInput.get('expiration_days') else 30
-            print send_days
             # 用户必须用户名和 邮箱
             if not user_name or not to_email:
                 self.res['status'] = "failed"
@@ -55,14 +53,6 @@ class SyncUser(BaseHandler):
                 return json.dumps(self.res)
 
             # 判断传值是否正确，不正确默认
-
-            if send_days is not None and len(send_days) != 0:
-                send_days = send_days.split(',')
-                send_days = [send_day for send_day in send_days if send_day in default_send_days]
-                if len(send_days) == 0:
-                    send_days = default_send_days
-            else:
-                send_days = default_send_days
             u = KeUser.all().filter("name = ",user_name ).get()
             if not u:
                 myfeeds = Book(title=book_name, description=MY_FEEDS_DESC,
@@ -72,7 +62,7 @@ class SyncUser(BaseHandler):
                 secret_key = new_secret_key()
                 au = KeUser(name=user_name, passwd=hashlib.md5(to_email + secret_key).hexdigest(),
                             kindle_email=to_email, enable_send=True, send_time=8, timezone=TIMEZONE,
-                            send_days=send_days,book_type="epub", device='kindle', ownfeeds=myfeeds,
+                            send_days=DEFAULT_SEND_DAYS,book_type="epub", device='kindle', ownfeeds=myfeeds,
                             remove_hyperlinks='image',book_mode='periodical',titlefmt='YY-MM-DD',
                             merge_books=False, secret_key=secret_key, expiration_days=expiration_days)
                 if webInput.get('expires') is None:
@@ -108,13 +98,14 @@ class SyncUser(BaseHandler):
             if not self.webInput.get('send_day'):  # 用户定义 哪天发送 不定义默认为周五 早上8点
                 user.send_days = ['Friday']
             else:
-                if self.webInput.get('send_day') in default_send_days:
-                    user.send_days = []
-            user.send_time = self.webInput.get('send_time', 8)
-            user.device = webInput.get('devicetype') or 'kindle'
-            user.titlefmt = webInput.get('titlefmt') or '%Y-%m-%d'
-            user.timezone = int(webInput.get('timezone', TIMEZONE))
-            user.kindle_email = int(webInput.get('receive_email')) or user.kindle_email
+                if self.webInput.get('send_day') in DEFAULT_SEND_DAYS:
+                    user.send_days = [self.webInput.get('send_day')]
+            user.send_time = int(self.webInput.get('send_time', 8))
+            user.device = self.webInput.get('devicetype') or 'kindle'
+            user.titlefmt = self.webInput.get('titlefmt') or '%Y-%m-%d'
+            user.timezone = int(self.webInput.get('timezone', TIMEZONE))
+            user.kindle_email = self.webInput.get('receive_email') or user.kindle_email
+            user.remove_hyperlinks = webInput.get('removehyperlinks')
             user.put()
             return json.dumps(self.res)
         elif mgrType.lower == 'cover':# 设置封面图片
@@ -279,7 +270,7 @@ class MyDeliverLogs(BaseHandler,):
     '''
     __url__ = "/api/v2/my/deliver/logs"
     def __init__(self):
-        super(MyLogs, self).__init__(setLang=False)
+        super(MyDeliverLogs, self).__init__(setLang=False)
         self.webInput = web.input()
         self.res = {"status": "ok", "msg": "", "data":[]}
     def POST(self):
@@ -293,9 +284,18 @@ class MyDeliverLogs(BaseHandler,):
         for log in my_logs:
             my_log = {'to': log.to,'size': log.size,'datetime': log.datetime.strftime('%Y-%m-%d %H:%M:00') ,'book': log.book,'status': log.status}
             self.res['data'].append(my_log)
-
-
-
         return json.dumps(self.res)
 
+
+'''
+加密解密测试
+'''
+# class test(BaseHandler):
+#     __url__ = '/api/v2/encrypt'
+#     def POST(self):
+#         data = web.input().get('data')
+#         text = Encipher(data).aes_decrypt()
+#         print(text)
+#         json_data = json.loads(text)
+#         return json_data.get('user_name')
 
