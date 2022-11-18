@@ -168,7 +168,7 @@ class Share(BaseHandler):
         title = web.input().get('t', '')
         name = web.input().get("n", '')
         if user.instapaper_username != name:
-            info = T_INFO % ('Action rejected', 'Username not match!<br/>KindleEar refuse to execute your command.')
+            info = T_INFO % ('Action rejected', 'Username not match!<br/>rss2Ebook refuse to execute your command.')
             return info.encode('utf-8')
             
         opener = URLOpener()

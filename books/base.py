@@ -280,17 +280,15 @@ class BaseFeedBook:
             section, url = feed[0], feed[1]
             isfulltext = feed[2] if len(feed) > 2 else False
             timeout = self.timeout+10 if isfulltext else self.timeout
-            opener = URLOpener(self.host, timeout=timeout,
-                               headers=self.extra_header)
+            opener = URLOpener(self.host, timeout=timeout,headers=self.extra_header)
             result = opener.open(url)
             if result.status_code == 200 and result.content:
-                #debug_mail(result.content, 'feed.xml')
+                # debug_mail(result.content, 'feed.xml')
                 decoder = AutoDecoder(isfeed=True)
                 content = self.AutoDecodeContent(
                     result.content, decoder, self.feed_encoding, opener.realurl, result.headers)
-
                 feed = feedparser.parse(content)
-
+                debug_mail(feed,"feed.html")
                 for e in feed['entries'][:self.max_articles_per_feed]:
                     updated = None
                     if hasattr(e, 'updated_parsed') and e.updated_parsed:
@@ -375,8 +373,7 @@ class BaseFeedBook:
                 if section != prevsection or prevsection == '':
                     decoder.encoding = ''  # 每个小节都重新检测编码
                     prevsection = section
-                    opener = URLOpener(
-                        self.host, timeout=self.timeout, headers=self.extra_header)
+                    opener = URLOpener(self.host, timeout=self.timeout, headers=self.extra_header)
                     if self.needs_subscription:
                         result = self.login(opener, decoder)
                         # if result:
@@ -558,8 +555,7 @@ class BaseFeedBook:
 
         # 提取正文
         try:
-            doc = readability.Document(
-                content, positive_keywords=self.positive_classes)
+            doc = readability.Document(content, positive_keywords=self.positive_classes)
             summary = doc.summary(html_partial=False)
         except:
             # 如果提取正文出错，可能是图片（一个图片做为一篇文章，没有使用html包装）
@@ -1421,8 +1417,6 @@ class WebpageBook(BaseFeedBook):
 # 提供网页URL，而不是RSS订阅地址，
 # 此类生成的MOBI使用普通书籍格式，而不是期刊杂志格式
 # feeds中的地址为网页的URL，section可以为空。
-
-
 class BaseUrlBook(BaseFeedBook):
     fulltext_by_readability = True
 

@@ -37,7 +37,6 @@ class SyncUser(BaseHandler):
     def POST(self,mgrType):
         if not self.check_api_key(self.key):
             return self.check_api_key(self.key)
-        res = {}
         webInput = web.input()
         user_name = webInput.get('user_name')
         if mgrType.lower() == 'add':
@@ -127,19 +126,25 @@ class SyncUser(BaseHandler):
                     user.cover = db.Blob(data.getvalue())
                     user.put()
             except Exception as e:
-                res['status'] = 'failed'
-                res['msg'] = str(e)
+                self.res['status'] = 'failed'
+                self.res['msg'] = str(e.message)
             return json.dumps(self.res)
 
-        elif mgrType.lower == 'upgrade':  # 用户升级 使用时长
+        elif mgrType.lower() == 'upgrade':  # 用户升级 使用时长
             user = KeUser.all().filter("name = ", user_name).get()
             if not user:
-                return json.dumps({"status": "failed", "msg": "user not exists!"})
+                self.res['status'] = "failed"
+                self.res['msg'] = 'user not exists'
+                return json.dumps(self.res)
             try:
-                if not webInput.get('expires') is None: # 判断是否为空
-                    user.expires = webInput.get('expires')
+                expiration_days = int(webInput.get('expiration_days'))
+                if not webInput.get('expires') is None:    # 判断是否为空
+                    str_date = datetime.datetime.strptime(webInput.get('expires'), '%Y-%m-%d') + datetime.timedelta(days=1)
+                    user.expires = str_date
+                else:
+                    user.expires = datetime.datetime.utcnow() + datetime.timedelta(days=expiration_days+1)
                 if not webInput.get('expiration_days') is None:  # 判断是否为空
-                    user.expiration_days = webInput.get('expiration_days')
+                    user.expiration_days = int(webInput.get('expiration_days'))
                 user.put()
             except Exception as e:
                 self.res['status'] = 'failed'
@@ -187,6 +192,7 @@ class FeedRSS(BaseHandler):
             user = KeUser.all().filter("name = ", user_name).get()
             title = self.webInput.get('title')
             url = self.webInput.get('url')
+            is_fulltext = bool(self.webInput.get('is_fulltext'))
             assert user.ownfeeds
             # 判断是否重复
             user_feed_urls = [item.url for item in user.ownfeeds.feeds]
@@ -194,7 +200,7 @@ class FeedRSS(BaseHandler):
             if url in user_feed_urls:
                 res['msg'] = 'rss already subscribed!'
                 return json.dumps(res)
-            fd = Feed(title=title, url=url, book=user.ownfeeds, isfulltext=False,
+            fd = Feed(title=title, url=url, book=user.ownfeeds, isfulltext=is_fulltext,
                       time=datetime.datetime.utcnow())
             fd.put()
             memcache.delete('%d.feedscount' % user.ownfeeds.key().id())
@@ -250,7 +256,7 @@ class ApiFeedBook(BaseHandler):
     def queueit(self, usr, book_id, separate, feed_id=None):
         param = {"u": usr.name, "id": book_id}
         if feed_id:
-            param['feedsId'] = feed_id
+            param['feedsId'] = feed_id    # 多个用| 隔开 ，每个id 必须是数字
         taskqueue.add(url='/worker', queue_name="deliverqueue1", method='GET',
                 params=param, target="worker")
     def flushqueue(self):
@@ -272,6 +278,7 @@ class MyDeliverLogs(BaseHandler,):
         self.webInput = web.input()
         self.res = {"status": "ok", "msg": "", "data":[]}
     def POST(self):
+        from apps.utils import fix_filesizeformat
         if not self.check_api_key(self.webInput.get('key')):
             return self.check_api_key(self.webInput.get('key'))
         user_name = self.webInput.get('user_name')
@@ -280,7 +287,8 @@ class MyDeliverLogs(BaseHandler,):
         except NeedIndexError:  # 很多人不会部署，经常出现没有建立索引的情况，干脆碰到这种情况直接消耗CPU时间自己排序得了
             my_logs = sorted(DeliverLog.all().filter("username = ", user_name), key=attrgetter('time'), reverse=True)[:50]
         for log in my_logs:
-            my_log = {'to': log.to,'size': log.size,'datetime': log.datetime.strftime('%Y-%m-%d %H:%M:00') ,'book': log.book,'status': log.status}
+            log.size = 200000
+            my_log = {'to': log.to,'size': fix_filesizeformat(log.size),'datetime': log.datetime.strftime('%Y-%m-%d %H:%M:00'),'book': log.book,'status': log.status}
             self.res['data'].append(my_log)
         return json.dumps(self.res)
 

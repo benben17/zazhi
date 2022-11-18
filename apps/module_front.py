@@ -67,12 +67,13 @@ for book in BookClasses():  #添加内置书籍  // 读取books目录下的文�
 
 class Test(BaseHandler):
     def GET(self):
-        s = ''
-        for d in os.environ:
-            s += "<pre><p>" + str(d).rjust(28) + " | " + str(os.environ[d]) + "</p></pre>"
+        s = '<pre><p>create ebook from any rss!</p></pre>'
+        # s += '<pre><p><a href="www.rss2ebook.com">www.rss2ebook.com</a></p></pre>'
+        # for d in os.environ:
+        #     s += "<pre><p>" + str(d).rjust(28) + " | " + str(os.environ[d]) + "</p></pre>"
         return s
 
-main.urls += ["/test", "Test",]
+main.urls += ["/rss2ebook", "Test",]
 
 application = web.application(main.urls, globals())
 store = MemcacheStore(memcache)

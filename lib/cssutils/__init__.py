@@ -79,10 +79,10 @@ CSSSerializer classes only.
 
 Usage may be::
 
-    >>> from cssutils import *
-    >>> parser = CSSParser()
-    >>> sheet = parser.parseString(u'a { color: red}')
-    >>> print sheet.cssText
+     from cssutils import *
+     parser = CSSParser()
+     sheet = parser.parseString(u'a { color: red}')
+     print sheet.cssText
     a {
         color: red
         }
@@ -318,7 +318,7 @@ def resolveImports(sheet, target=None):
                 try:
                     # nested imports
                     importedSheet = resolveImports(rule.styleSheet)
-                except xml.dom.HierarchyRequestErr, e:
+                except xml.dom.HierarchyRequestErr as e:
                     log.warn(u'@import: Cannot resolve target, keeping rule: %s'
                              % e, neverraise=True)
                     target.add(rule)
@@ -382,4 +382,4 @@ def resolveImports(sheet, target=None):
 
 
 if __name__ == '__main__':
-    print __doc__
+    print(__doc__)

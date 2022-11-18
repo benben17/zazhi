@@ -197,6 +197,7 @@ class Worker(BaseHandler):
             # 对于CSS文件，sec_or_media 为 'text/css'，url 和 title 都为文件名
             try: #书的质量可能不一，一本书的异常不能影响其他书籍的推送
                 for sec_or_media, url, title, content, brief, thumbnail in book.Items():
+                    # print(content)
                     if not sec_or_media or not title or not content:
                         continue
                     if sec_or_media.startswith(r'image/'):

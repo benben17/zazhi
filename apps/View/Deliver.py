@@ -8,9 +8,7 @@
 import gettext
 
 import web
-
 from google.appengine.api import taskqueue
-
 from collections import defaultdict
 from apps.BaseHandler import BaseHandler
 from apps.dbModels import *

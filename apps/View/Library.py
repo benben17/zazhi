@@ -21,14 +21,17 @@ class SharedLibrary(BaseHandler):
     __url__ = "/library"
     def GET(self):
         user = self.getcurrentuser()
-
         #连接分享服务器获取数据
         shared_data = []
+        tips = ''
+        opener = URLOpener()
+        url = urlparse.urljoin('http://kindleear.appspot.com/', SharedLibrarykindleearAppspotCom.__url__)
+        result = opener.open(url + '?key=kindleear.lucky!')
+        if result.status_code == 200 and result.content:
+            shared_data = json.loads(result.content)
+        else:
+            tips = _('Cannot fetch data from kindleear.appspot.com, status: ') + URLOpener.CodeMap(result.status_code)
 
-        for d in LibRss.all().fetch(limit=10000):
-            shared_data.append({'t': d.title, 'u': d.url, 'f': d.isfulltext, 'c': d.category, 's': d.subscribed,
-                                'd': int((d.created_time - datetime.datetime(1970, 1, 1)).total_seconds())})
-        tips='test'
         return self.render('sharedlibrary.html', "Shared",
             current='shared', user=user, shared_data=shared_data, tips=tips)
 
@@ -85,19 +88,15 @@ class SharedLibraryCategory(BaseHandler):
     def GET(self):
         user = self.getcurrentuser(forAjax=True)
         web.header('Content-Type', 'application/json')
-
         #连接分享服务器获取数据
         respDict = {'status':'ok', 'categories':[]}
-
         opener = URLOpener()
-        url = urlparse.urljoin('http://kindleear.appspot.com/', SharedLibraryCategorykindleearAppspotCom.__url__)
+        url = urlparse.urljoin('https://kindleear.appspot.com/', SharedLibraryCategorykindleearAppspotCom.__url__)
         result = opener.open(url + '?key='+__auth_key__)
-
         if result.status_code == 200 and result.content:
             respDict['categories'] = json.loads(result.content)
         else:
             respDict['status'] = _('Cannot fetch data from kindleear.appspot.com, status: ') + URLOpener.CodeMap(result.status_code)
-
         return json.dumps(respDict)
 
 #===========================================================================================================
