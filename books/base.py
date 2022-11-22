@@ -5,13 +5,7 @@ KindleEar电子书基类，每本投递到kindle的书籍抽象为这里的一�
 可以继承BaseFeedBook类而实现自己的定制书籍。
 cdhigh <https://github.com/cdhigh>
 """
-import os
-import re
-import urllib
-import urlparse
-import imghdr
-import datetime
-import hashlib
+import os, re, urllib, urlparse, imghdr, datetime, hashlib
 from urllib2 import *
 
 from bs4 import BeautifulSoup, Comment, NavigableString, CData, Tag
@@ -118,8 +112,7 @@ class BaseFeedBook:
 
     # 内置的几个必须删除的标签，不建议子类修改
     # 内容为字符串列表
-    insta_remove_tags = ['script', 'object', 'video',
-                         'embed', 'noscript', 'style', 'link']
+    insta_remove_tags = ['script', 'object', 'video', 'embed', 'noscript', 'style', 'link']
     insta_remove_attrs = ['width', 'height', 'onclick', 'onload', 'style']
     insta_remove_classes = []
     insta_remove_ids = ['controlbar_container', ]
@@ -127,8 +120,7 @@ class BaseFeedBook:
     # ---------------add by rexdf-------------
     # 下面的积极关键词,有些内容会被readability过滤掉，比如html5的figure，可以通过增加权重保留
     # 这个是针对部分html5网站优化的，子类需要修改可以不用继承，因为子类往往针对特定某一网站，可以专门定制
-    positive_classes = ['image-block',
-                        'image-block-caption', 'image-block-ins']
+    positive_classes = ['image-block', 'image-block-caption', 'image-block-ins']
 
     # 图像最小大小，有些网站会在正文插入一个1*1像素的图像，大约是带有的水印信息，这样的图片视觉无意义，而且干扰thumbnail
     img_min_size = 1024
@@ -153,7 +145,7 @@ class BaseFeedBook:
     # 每个链接格式为元组：(分节标题, URL, isfulltext)
     # 最后一项isfulltext是可选的，如果存在，取值为True/False
     # 注意，如果分节标题是中文的话，增加u前缀，比如
-    #(u'8小时最热', 'http://www.qiushibaike.com'),
+    # (u'8小时最热', 'http://www.qiushibaike.com'),
     feeds = []
 
     # 几个钩子函数，基类在适当的时候会调用，
@@ -208,8 +200,7 @@ class BaseFeedBook:
         if not self.url_filters:
             return False
         elif not self.compiled_urlfilters:
-            self.compiled_urlfilters = [re.compile(
-                unicode(flt), re.I) for flt in self.url_filters]
+            self.compiled_urlfilters = [re.compile(unicode(flt), re.I) for flt in self.url_filters]
 
         if not isinstance(url, unicode):
             url = unicode(url)
@@ -279,16 +270,17 @@ class BaseFeedBook:
         for feed in self.feeds:
             section, url = feed[0], feed[1]
             isfulltext = feed[2] if len(feed) > 2 else False
-            timeout = self.timeout+10 if isfulltext else self.timeout
-            opener = URLOpener(self.host, timeout=timeout,headers=self.extra_header)
+            timeout = self.timeout + 10 if isfulltext else self.timeout
+            opener = URLOpener(self.host, timeout=timeout, headers=self.extra_header)
             result = opener.open(url)
             if result.status_code == 200 and result.content:
                 # debug_mail(result.content, 'feed.xml')
                 decoder = AutoDecoder(isfeed=True)
-                content = self.AutoDecodeContent(
-                    result.content, decoder, self.feed_encoding, opener.realurl, result.headers)
+                content = self.AutoDecodeContent(result.content, decoder, self.feed_encoding, opener.realurl,
+                                                 result.headers)
+
                 feed = feedparser.parse(content)
-                debug_mail(feed,"feed.html")
+
                 for e in feed['entries'][:self.max_articles_per_feed]:
                     updated = None
                     if hasattr(e, 'updated_parsed') and e.updated_parsed:
@@ -304,11 +296,10 @@ class BaseFeedBook:
                         if self.oldest_article > 365:
                             threshold = self.oldest_article  # 以秒为单位
                         else:
-                            threshold = 86400*self.oldest_article  # 以天为单位
+                            threshold = 86400 * self.oldest_article  # 以天为单位
 
-                        if delta.days*86400+delta.seconds > threshold:
-                            self.log.info("Skip old article(%s): %s" % (
-                                updated.strftime('%Y-%m-%d %H:%M:%S'), e.link))
+                        if delta.days * 86400 + delta.seconds > threshold:
+                            self.log.info("Skip old article(%s): %s" % (updated.strftime('%Y-%m-%d %H:%M:%S'), e.link))
                             continue
 
                     title = e.title if hasattr(e, 'title') else 'Untitled'
@@ -334,8 +325,7 @@ class BaseFeedBook:
                         # 同时存在，因为有的RSS全文内容放在summary，有的放在content
                         # 所以认为内容多的为全文
                         if summary and desc:
-                            desc = summary if len(
-                                summary) > len(desc) else desc
+                            desc = summary if len(summary) > len(desc) else desc
                         elif summary:
                             desc = summary
 
@@ -343,18 +333,15 @@ class BaseFeedBook:
                             if not urlfeed:
                                 continue
                             else:
-                                self.log.warn(
-                                    'Fulltext feed item no has desc,link to webpage for article.(%s)' % title)
+                                self.log.warn('Fulltext feed item no has desc,link to webpage for article.(%s)' % title)
 
                     urladded.add(urlfeed)
                     # 针对URL里面有unicode字符的处理，否则会出现Bad request
                     # 后面参数里面的那一堆“乱码”是要求不处理ASCII的特殊符号，只处理非ASCII字符
-                    urlfeed = urllib.quote_plus(urlfeed.encode(
-                        'utf-8'), r'''~`!@#$%^&*()|\\/,.<>;:"'{}[]?=-_+''')
+                    urlfeed = urllib.quote_plus(urlfeed.encode('utf-8'), r'''~`!@#$%^&*()|\\/,.<>;:"'{}[]?=-_+''')
                     urls.append((section, title, urlfeed, desc))
             else:
-                self.log.warn('fetch rss failed(%s):%s' %
-                              (URLOpener.CodeMap(result.status_code), url))
+                self.log.warn('fetch rss failed(%s):%s' % (URLOpener.CodeMap(result.status_code), url))
 
         return urls
 
@@ -365,8 +352,7 @@ class BaseFeedBook:
         urls = self.ParseFeedUrls()
         readability = self.readability if self.fulltext_by_readability else self.readability_by_soup
         prevsection = ''
-        opener = URLOpener(self.host, timeout=self.timeout,
-                           headers=self.extra_header)
+        opener = URLOpener(self.host, timeout=self.timeout, headers=self.extra_header)
         decoder = AutoDecoder(isfeed=False)
         for section, fTitle, url, desc in urls:
             if not desc:  # 非全文RSS
@@ -425,35 +411,31 @@ class BaseFeedBook:
             self.log.warn('Cannot found login form!')
             return
 
-        self.log.info('Form selected for login:name(%s),id(%s),class(%s)' % (
-            form.get('name'), form.get('id'), form.get('class')))
+        self.log.info(
+            'Form selected for login:name(%s),id(%s),class(%s)' % (form.get('name'), form.get('id'), form.get('class')))
 
         method = form.get('method', 'get').upper()
-        action = self.urljoin(self.login_url, form['action']) if form.get(
-            'action') else self.login_url
+        action = self.urljoin(self.login_url, form['action']) if form.get('action') else self.login_url
 
         # 判断帐号域和密码域
-        inputs = list(form.find_all('input', attrs={
-                      'type': ['text', 'email', 'password']}))
+        inputs = list(form.find_all('input', attrs={'type': ['text', 'email', 'password']}))
         field_name = field_pwd = None
         if len(inputs) == 2:  # 只有两个输入域则假定第一个为账号第二个为密码
             field_name, field_pwd = inputs[0], inputs[1]
         elif len(inputs) > 2:  # 可能需要验证码？先不管了，提取出账号密码域尝试一下
             for idx, field in enumerate(inputs[1:], 1):
                 if field['type'].lower() == 'password':  # 同时假定密码域的前一个是账号域
-                    field_name, field_pwd = inputs[idx-1], field
+                    field_name, field_pwd = inputs[idx - 1], field
                     break
 
         if not field_name or not field_pwd:
-            self.log.warn(
-                'Cant determine fields for account and password in login form!')
+            self.log.warn('Cant determine fields for account and password in login form!')
             return
 
         # 直接返回其他元素（包括隐藏元素）
-        def name_of_field(x): return x.get('name') or x.get('id')
+        name_of_field = lambda x: x.get('name') or x.get('id')
         input_elems = list(form.find_all('input'))
-        fields_dic = {name_of_field(e): e.get('value', '')
-                      for e in input_elems if name_of_field(e)}
+        fields_dic = {name_of_field(e): e.get('value', '') for e in input_elems if name_of_field(e)}
         # 填写账号密码
         fields_dic[name_of_field(field_name)] = self.account
         fields_dic[name_of_field(field_pwd)] = self.password
@@ -464,10 +446,10 @@ class BaseFeedBook:
             fields_dic.update(qs)
             newParts = parts[:-2] + (urllib.urlencode(fields_dic), None)
             target_url = urlparse.urlunparse(newParts)
-            #self.log.debug('Login url : ' + target_url)
+            # self.log.debug('Login url : ' + target_url)
             return opener.open(target_url)
         else:
-            #self.log.info('field_dic:%s' % repr(fields_dic))
+            # self.log.info('field_dic:%s' % repr(fields_dic))
             target_url = action
             return opener.open(target_url, data=fields_dic)
 
@@ -475,18 +457,17 @@ class BaseFeedBook:
     def SelectLoginForm(self, soup):
         form = None
         if isinstance(self.form_4_login, (int, long)):  # 通过序号选择表单
-            forms = soup.select('form:nth-of-type(%d)' % (self.form_4_login+1))
+            forms = soup.select('form:nth-of-type(%d)' % (self.form_4_login + 1))
             form = forms[0] if forms else None
         elif isinstance(self.form_4_login, basestring):  # 通过名字
             if self.form_4_login.startswith('#'):  # id
-                form = soup.find(lambda f: f.name == 'form' and f.get(
-                    'id') == self.form_4_login[1:])
+                form = soup.find(lambda f: f.name == 'form' and f.get('id') == self.form_4_login[1:])
             elif self.form_4_login.startswith('.'):  # class
-                form = soup.find(
-                    lambda f: f.name == 'form' and self.form_4_login[1:] in f.get('class', []))
+                form = soup.find(lambda f: f.name == 'form' and self.form_4_login[1:] in f.get('class', []))
             else:  # name & id & class
                 form = soup.find(lambda f: f.name == 'form' and (f.get('name') == self.form_4_login
-                                                                 or f.get('id') == self.form_4_login or self.form_4_login in f.get('class', [])))
+                                                                 or f.get(
+                            'id') == self.form_4_login or self.form_4_login in f.get('class', [])))
         else:  # 自动猜测
             forms = list(soup.find_all('form'))
             if len(forms) == 1:
@@ -507,8 +488,7 @@ class BaseFeedBook:
                                 break
 
                         # 根据名字或提交地址猜测
-                        fname = (f.get('id', '') or ''.join(
-                            f.get('class', []))).lower()
+                        fname = (f.get('id', '') or ''.join(f.get('class', []))).lower()
                         action = f.get('action', '').lower()
                         if ('log' in fname) or ('log' in action):
                             form = f
@@ -523,8 +503,7 @@ class BaseFeedBook:
         result = opener.open(url)
         status_code, content = result.status_code, result.content
         if status_code not in (200, 206) or not content:
-            self.log.warn('fetch page failed(%s):%s.' %
-                          (URLOpener.CodeMap(status_code), url))
+            self.log.warn('fetch page failed(%s):%s.' % (URLOpener.CodeMap(status_code), url))
             return None
 
         # debug_mail(content)
@@ -565,8 +544,7 @@ class BaseFeedBook:
                 imgtype = ''
             if imgtype:  # 如果是图片，则使用一个简单的html做为容器
                 imgmime = r"image/" + imgtype
-                fnimg = "img%d.%s" % (
-                    self.imgindex, 'jpg' if imgtype == 'jpeg' else imgtype)
+                fnimg = "img%d.%s" % (self.imgindex, 'jpg' if imgtype == 'jpeg' else imgtype)
                 yield (imgmime, url, fnimg, content, None, None)
                 tmpHtml = '<html><head><title>Picture</title></head><body><img src="%s" /></body></html>' % fnimg
                 yield ('Picture', None, None, tmpHtml, '', None)
@@ -597,8 +575,7 @@ class BaseFeedBook:
 
             head = soup.find('head')
             # 增加备用算法提示，提取效果不好不要找我，类似免责声明：）
-            info = soup.new_tag(
-                'p', style='color:#555555;font-size:60%;text-align:right;')
+            info = soup.new_tag('p', style='color:#555555;font-size:60%;text-align:right;')
             info.string = 'extracted by alternative algorithm.'
             body.append(info)
 
@@ -656,8 +633,7 @@ class BaseFeedBook:
 
         # 如果用户需要自定义CSS
         if user and user.css_content:
-            sty = soup.new_tag('link', type='text/css',
-                               rel='stylesheet', href='custom.css')
+            sty = soup.new_tag('link', type='text/css', rel='stylesheet', href='custom.css')
             soup.html.head.append(sty)
             yield ('text/css', 'custom.css', 'custom.css', user.css_content, None, None)
 
@@ -667,16 +643,14 @@ class BaseFeedBook:
         if self.keep_image:
             self.soupbeforeimage(soup)
             self.RectifyImageSrcInSoup(soup, url)
-            opener = URLOpener(self.host, timeout=self.timeout,
-                               headers=self.extra_header)
+            opener = URLOpener(self.host, timeout=self.timeout, headers=self.extra_header)
             for img in soup.find_all('img'):
                 imgurl = img['src'] if 'src' in img.attrs else None
                 if not imgurl:
                     continue
 
                 imgresult = opener.open(imgurl)
-                imgcontent = self.process_image(
-                    imgresult.content) if imgresult.status_code == 200 else None
+                imgcontent = self.process_image(imgresult.content) if imgresult.status_code == 200 else None
                 if imgcontent:
                     if isinstance(imgcontent, (list, tuple)):  # 一个图片分隔为多个图片
                         imgIndex = self.imgindex
@@ -707,8 +681,7 @@ class BaseFeedBook:
                         imgtype = imghdr.what(None, imgcontent)
                         if imgtype:
                             imgmime = r"image/" + imgtype
-                            fnimg = "img%d.%s" % (
-                                self.imgindex, 'jpg' if imgtype == 'jpeg' else imgtype)
+                            fnimg = "img%d.%s" % (self.imgindex, 'jpg' if imgtype == 'jpeg' else imgtype)
                             img['src'] = fnimg
 
                             # 使用第一个图片做为目录缩略图
@@ -721,8 +694,7 @@ class BaseFeedBook:
                         else:
                             img.decompose()
                 else:
-                    self.log.warn('fetch img failed(%s):%s' % (
-                        URLOpener.CodeMap(imgresult.status_code), imgurl))
+                    self.log.warn('fetch img failed(%s):%s' % (URLOpener.CodeMap(imgresult.status_code), imgurl))
                     img.decompose()
 
             # 去掉图像上面的链接，以免误触后打开浏览器
@@ -747,7 +719,7 @@ class BaseFeedBook:
                 # a_.unwrap()
                 a_.name = 'i'
                 a_.attrs.clear()
-                #a_.attrs['style'] = 'text-decoration:underline;'
+                # a_.attrs['style'] = 'text-decoration:underline;'
 
         # 插入分享链接，如果有插入qrcode，则返回(imgName, imgContent)
         qrimg = self.AppendShareLinksToArticle(soup, url)
@@ -837,8 +809,7 @@ class BaseFeedBook:
 
         # 如果用户需要自定义CSS
         if user and user.css_content:
-            sty = soup.new_tag('link', type='text/css',
-                               rel='stylesheet', href='custom.css')
+            sty = soup.new_tag('link', type='text/css', rel='stylesheet', href='custom.css')
             soup.html.head.append(sty)
             yield ('text/css', 'custom.css', 'custom.css', user.css_content, None, None)
 
@@ -849,16 +820,14 @@ class BaseFeedBook:
 
         if self.keep_image:
             self.RectifyImageSrcInSoup(soup, url)
-            opener = URLOpener(self.host, timeout=self.timeout,
-                               headers=self.extra_header)
+            opener = URLOpener(self.host, timeout=self.timeout, headers=self.extra_header)
             for img in soup.find_all('img'):
                 imgurl = img['src'] if 'src' in img.attrs else None
                 if not imgurl:
                     continue
 
                 imgresult = opener.open(imgurl)
-                imgcontent = self.process_image(
-                    imgresult.content) if imgresult.status_code == 200 else None
+                imgcontent = self.process_image(imgresult.content) if imgresult.status_code == 200 else None
                 if imgcontent:
                     if isinstance(imgcontent, list):  # 一个图片分隔为多个图片
                         imgIndex = self.imgindex
@@ -889,8 +858,7 @@ class BaseFeedBook:
                         imgtype = imghdr.what(None, imgcontent)
                         if imgtype:
                             imgmime = r"image/" + imgtype
-                            fnimg = "img%d.%s" % (
-                                self.imgindex, 'jpg' if imgtype == 'jpeg' else imgtype)
+                            fnimg = "img%d.%s" % (self.imgindex, 'jpg' if imgtype == 'jpeg' else imgtype)
                             img['src'] = fnimg
 
                             # 使用第一个图片做为目录缩略图
@@ -903,8 +871,7 @@ class BaseFeedBook:
                         else:
                             img.decompose()
                 else:
-                    self.log.warn('fetch img failed(%s):%s' % (
-                        URLOpener.CodeMap(imgresult.status_code), imgurl))
+                    self.log.warn('fetch img failed(%s):%s' % (URLOpener.CodeMap(imgresult.status_code), imgurl))
                     img.decompose()
 
             # 去掉图像上面的链接，以免误触后打开浏览器
@@ -951,7 +918,7 @@ class BaseFeedBook:
                 # a_.unwrap()
                 a_.name = 'i'
                 a_.attrs.clear()
-                #a_.attrs['style'] = 'text-decoration:underline;'
+                # a_.attrs['style'] = 'text-decoration:underline;'
 
         # 插入分享链接，如果插入了qrcode，则返回(imgName, imgContent)
         qrimg = self.AppendShareLinksToArticle(soup, url)
@@ -982,14 +949,12 @@ class BaseFeedBook:
             imgUrl = img['src'] if 'src' in img.attrs else ''
             if not imgUrl or imgUrl.endswith('/none.gif'):
                 for attr in img.attrs:
-                    # 很多网站使用data-src|data-original
-                    if attr != 'src' and (('src' in attr) or (attr == 'data-original')):
+                    if attr != 'src' and (('src' in attr) or (attr == 'data-original')):  # 很多网站使用data-src|data-original
                         imgUrl = img[attr]
                         break
                 if not imgUrl:
                     for attr in img.attrs:
-                        # 如果上面的搜索找不到，再大胆一点猜测url
-                        if attr != 'src' and (('data' in attr) or ('file' in attr)):
+                        if attr != 'src' and (('data' in attr) or ('file' in attr)):  # 如果上面的搜索找不到，再大胆一点猜测url
                             imgUrl = img[attr]
                             break
 
@@ -1011,7 +976,6 @@ class BaseFeedBook:
             img['src'] = imgUrl  # 将更正的地址写回保存
 
     # 根据一些配置，对图像进行处理，比如缩小，转灰度图，转格式，图像分隔等
-
     def process_image(self, data):
         if not data:
             return None
@@ -1036,8 +1000,7 @@ class BaseFeedBook:
                                          graying=opts.graying_image,
                                          reduceto=opts.reduce_image_to)
         except Exception as e:
-            self.log.warn(
-                'Process image failed (%s), use original image.' % str(e))
+            self.log.warn('Process image failed (%s), use original image.' % str(e))
             return data
 
     # 如果一个图片太长，则将其分隔成多个图片
@@ -1045,15 +1008,14 @@ class BaseFeedBook:
         if not THRESHOLD_SPLIT_LONG_IMAGE:
             return None
 
-        threshold = max(
-            self.opts.dest.screen_size[1], THRESHOLD_SPLIT_LONG_IMAGE)
+        threshold = max(self.opts.dest.screen_size[1], THRESHOLD_SPLIT_LONG_IMAGE)
 
         if not isinstance(data, StringIO):
             data = StringIO(data)
         img = Image.open(data)
         width, height = img.size
         fmt = img.format
-        #info = img.info
+        # info = img.info
 
         # 高至少是宽的三倍才认为是超长图
         if height < threshold or height < width * 3:
@@ -1181,13 +1143,14 @@ class BaseFeedBook:
     # 生成保存内容或分享文章链接的KindleEar调用链接
     def MakeShareLink(self, sharetype, user, url, soup):
         if sharetype in ('evernote', 'wiz'):
-            href = "%s/share?act=%s&u=%s&url=".format(DOMAIN, sharetype, user.name)
+            href = "%s/share?act=%s&u=%s&url=" % (DOMAIN, sharetype, user.name)
         elif sharetype == 'pocket':
-            href = '%s/share?act=pocket&u=%s&h=%s&t=%s&url='.format(DOMAIN, user.name, (hashlib.md5(user.pocket_acc_token_hash or '').hexdigest()),
-                                                                soup.html.head.title.string)
+            href = '%s/share?act=pocket&u=%s&h=%s&t=%s&url=' % (
+            DOMAIN, user.name, (hashlib.md5(user.pocket_acc_token_hash or '').hexdigest()),
+            soup.html.head.title.string)
         elif sharetype == 'instapaper':
             href = '%s/share?act=instapaper&u=%s&n=%s&t=%s&url=' % (
-                DOMAIN, user.name, user.instapaper_username or '', soup.html.head.title.string)
+            DOMAIN, user.name, user.instapaper_username or '', soup.html.head.title.string)
         elif sharetype == 'xweibo':
             href = 'http://v.t.sina.com.cn/share/share.php?url='
         elif sharetype == 'tweibo':
@@ -1201,8 +1164,7 @@ class BaseFeedBook:
         else:
             href = ''
         if user.share_fuckgfw and sharetype in ('evernote', 'wiz', 'facebook', 'twitter', 'pocket', 'instapaper'):
-            href = SHARE_FUCK_GFW_SRV % urllib.quote(
-                (href + url).encode('utf-8'))
+            href = SHARE_FUCK_GFW_SRV % urllib.quote((href + url).encode('utf-8'))
         else:
             href += urllib.quote(url.encode('utf-8'))
         return href
@@ -1226,17 +1188,14 @@ class WebpageBook(BaseFeedBook):
         decoder = AutoDecoder(isfeed=False)
         timeout = self.timeout
         for section, url in self.feeds:
-            opener = URLOpener(self.host, timeout=timeout,
-                               headers=self.extra_header)
+            opener = URLOpener(self.host, timeout=timeout, headers=self.extra_header)
             result = opener.open(url)
             status_code, content = result.status_code, result.content
             if status_code != 200 or not content:
-                self.log.warn('fetch article failed(%s):%s.' %
-                              (URLOpener.CodeMap(status_code), url))
+                self.log.warn('fetch article failed(%s):%s.' % (URLOpener.CodeMap(status_code), url))
                 continue
 
-            content = self.AutoDecodeContent(
-                content, decoder, self.page_encoding, opener.realurl, result.headers)
+            content = self.AutoDecodeContent(content, decoder, self.page_encoding, opener.realurl, result.headers)
 
             content = self.preprocess(content)
             soup = BeautifulSoup(content, "lxml")
@@ -1254,7 +1213,7 @@ class WebpageBook(BaseFeedBook):
                 title = soup.html.head.title.string
             except AttributeError:
                 title = section
-                #self.log.warn('object soup invalid!(%s)'%url)
+                # self.log.warn('object soup invalid!(%s)'%url)
                 # continue
 
             title = self.processtitle(title)
@@ -1312,8 +1271,7 @@ class WebpageBook(BaseFeedBook):
 
             # 如果用户需要自定义CSS
             if user and user.css_content:
-                sty = soup.new_tag('link', type='text/css',
-                                   rel='stylesheet', href='custom.css')
+                sty = soup.new_tag('link', type='text/css', rel='stylesheet', href='custom.css')
                 soup.html.head.append(sty)
                 yield ('text/css', 'custom.css', 'custom.css', user.css_content, None, None)
 
@@ -1328,8 +1286,7 @@ class WebpageBook(BaseFeedBook):
                         continue
 
                     imgresult = opener.open(imgurl)
-                    imgcontent = self.process_image(
-                        imgresult.content) if imgresult.status_code == 200 else None
+                    imgcontent = self.process_image(imgresult.content) if imgresult.status_code == 200 else None
                     if imgcontent:
                         if isinstance(imgcontent, (list, tuple)):  # 一个图片分隔为多个图片
                             imgIndex = self.imgindex
@@ -1360,8 +1317,7 @@ class WebpageBook(BaseFeedBook):
                             imgtype = imghdr.what(None, imgcontent)
                             if imgtype:
                                 imgmime = r"image/" + imgtype
-                                fnimg = "img%d.%s" % (
-                                    self.imgindex, 'jpg' if imgtype == 'jpeg' else imgtype)
+                                fnimg = "img%d.%s" % (self.imgindex, 'jpg' if imgtype == 'jpeg' else imgtype)
                                 img['src'] = fnimg
 
                                 # 使用第一个图片做为目录摘要图
@@ -1374,8 +1330,7 @@ class WebpageBook(BaseFeedBook):
                             else:
                                 img.decompose()
                     else:
-                        self.log.warn('fetch img failed(%s):%s' % (
-                            URLOpener.CodeMap(imgresult.status_code), imgurl))
+                        self.log.warn('fetch img failed(%s):%s' % (URLOpener.CodeMap(imgresult.status_code), imgurl))
                         img.decompose()
 
                 # 去掉图像上面的链接
@@ -1395,7 +1350,7 @@ class WebpageBook(BaseFeedBook):
                     # a_.unwrap()
                     a_.name = 'i'
                     a_.attrs.clear()
-                    #a_.attrs['style'] = 'text-decoration:underline;'
+                    # a_.attrs['style'] = 'text-decoration:underline;'
 
             content = unicode(soup)
 
@@ -1414,6 +1369,7 @@ class WebpageBook(BaseFeedBook):
             content = self.postprocess(content)
             yield (section, url, title, content, brief, thumbnail)
 
+
 # 提供网页URL，而不是RSS订阅地址，
 # 此类生成的MOBI使用普通书籍格式，而不是期刊杂志格式
 # feeds中的地址为网页的URL，section可以为空。
@@ -1424,11 +1380,10 @@ class BaseUrlBook(BaseFeedBook):
         # return list like [(section,title,url,desc),..]
         return [(sec, sec, url, '') for sec, url in self.feeds]
 
+
 # 漫画专用，漫画的主要特征是全部为图片，而且图片默认全屏呈现
 # 由 insert0003 <https://github.com/insert0003> 贡献代码
 # 如果要处理连载的话，可以使用 ComicUpdateLog 数据库表来记录和更新
-
-
 class BaseComicBook(BaseFeedBook):
     # 子类填充： (https://www.manhuagui.com", "https://m.manhuagui.com")
     accept_domains = tuple()
@@ -1481,8 +1436,7 @@ class BaseComicBook(BaseFeedBook):
                     break
                 next_chapter_index += 1
                 chapters.append(
-                    (bookname, chapter_title, imgList,
-                     chapter_url, next_chapter_index)
+                    (bookname, chapter_title, imgList, chapter_url, next_chapter_index)
                 )
             else:
                 self.log.info(
@@ -1506,8 +1460,7 @@ class BaseComicBook(BaseFeedBook):
 
     # 生成器，返回一个图片元组，mime,url,filename,content,brief,thumbnail
     def gen_image_items(self, img_list, referer):
-        opener = URLOpener(referer, timeout=self.timeout,
-                           headers=self.extra_header)
+        opener = URLOpener(referer, timeout=self.timeout, headers=self.extra_header)
         decoder = AutoDecoder(isfeed=False)
         min_width, min_height = self.min_image_size
         if self.needs_subscription:
@@ -1516,8 +1469,7 @@ class BaseComicBook(BaseFeedBook):
             result = opener.open(url)
             content = result.content
             if not content:
-                raise Exception("Failed to download %s: code %s" %
-                                (url, result.status_code))
+                raise Exception("Failed to download %s: code %s" % (url, result.status_code))
 
             content = self.adjustImgContent(content)
 
@@ -1534,19 +1486,17 @@ class BaseComicBook(BaseFeedBook):
                             imgType = imghdr.what(None, imgPartContent)
                             imgMime = r"image/" + imgType
                             fnImg = "img%d_%d.jpg" % (imgIndex, idx)
-                            imgPartUrl = url[:-4]+"_%d.jpg" % idx
+                            imgPartUrl = url[:-4] + "_%d.jpg" % idx
                             imgFilenameList.append(fnImg)
                             yield (imgMime, imgPartUrl, fnImg, imgPartContent, None, True)
                     else:  # 单个图片
                         imgType = imghdr.what(None, content)
                         imgMime = r"image/" + imgType
-                        fnImg = "img%d.%s" % (
-                            self.imgindex, 'jpg' if imgType == 'jpeg' else imgType)
+                        fnImg = "img%d.%s" % (self.imgindex, 'jpg' if imgType == 'jpeg' else imgType)
                         imgFilenameList.append(fnImg)
                         yield (imgMime, url, fnImg, content, None, None)
             else:  # 不是图片，有可能是包含图片的网页，抽取里面的图片
-                content = self.AutoDecodeContent(
-                    content, decoder, self.page_encoding, opener.realurl, result.headers)
+                content = self.AutoDecodeContent(content, decoder, self.page_encoding, opener.realurl, result.headers)
                 soup = BeautifulSoup(content, 'lxml')
                 self.RectifyImageSrcInSoup(soup, opener.realurl)
 
@@ -1560,8 +1510,7 @@ class BaseComicBook(BaseFeedBook):
 
                     # 为了省时间，如果图片属性中有width/height，则也可以先初步判断是不是漫画图片
                     if 'width' in img.attrs:
-                        width = img.attrs['width'].replace('"', '').replace(
-                            "'", '').replace('px', '').strip()
+                        width = img.attrs['width'].replace('"', '').replace("'", '').replace('px', '').strip()
                         try:
                             if int(width) < min_width:
                                 continue
@@ -1569,8 +1518,7 @@ class BaseComicBook(BaseFeedBook):
                             pass
 
                     if 'height' in img.attrs:
-                        height = img.attrs['height'].replace('"', '').replace(
-                            "'", '').replace('px', '').strip()
+                        height = img.attrs['height'].replace('"', '').replace("'", '').replace('px', '').strip()
                         try:
                             if int(height) < min_height:
                                 continue
@@ -1591,8 +1539,7 @@ class BaseComicBook(BaseFeedBook):
                         imgContent = self.process_image_comic(imgContent)
                         imgType = imghdr.what(None, imgContent)
                         imgMime = r"image/" + imgType
-                        fnImg = "img%d.%s" % (
-                            self.imgindex, 'jpg' if imgType == 'jpeg' else imgType)
+                        fnImg = "img%d.%s" % (self.imgindex, 'jpg' if imgType == 'jpeg' else imgType)
                         imgFilenameList.append(fnImg)
                         yield (imgMime, imgUrl, fnImg, imgContent, None, None)
                 else:  # 多个图片，要分析哪些才是漫画
@@ -1609,12 +1556,10 @@ class BaseComicBook(BaseFeedBook):
 
                     # 如果所有的图片都被排除了，则使用所有图片里面尺寸最大的
                     if not any(isComics):
-                        imgContentList.sort(
-                            key=lambda x: len(x[1]), reverse=True)
+                        imgContentList.sort(key=lambda x: len(x[1]), reverse=True)
                         imgContentList = [imgContentList[0]]
                     else:
-                        imgContentList = [item for idx, item in enumerate(
-                            imgContentList) if isComics[idx]]
+                        imgContentList = [item for idx, item in enumerate(imgContentList) if isComics[idx]]
 
                     # 列表中的就是漫画图片
                     for imgUrl, imgContent in imgContentList:
@@ -1623,8 +1568,7 @@ class BaseComicBook(BaseFeedBook):
                             imgContent = self.process_image_comic(imgContent)
                             imgType = imghdr.what(None, imgContent)
                             imgMime = r"image/" + imgType
-                            fnImg = "img%d.%s" % (
-                                self.imgindex, 'jpg' if imgType == 'jpeg' else imgType)
+                            fnImg = "img%d.%s" % (self.imgindex, 'jpg' if imgType == 'jpeg' else imgType)
                             imgFilenameList.append(fnImg)
                             yield (imgMime, imgUrl, fnImg, imgContent, None, None)
 
@@ -1636,16 +1580,15 @@ class BaseComicBook(BaseFeedBook):
     def Items(self):
         # todo: update last-delivered after send to kindle for built-in
         for (
-            bookname,
-            chapter_title,
-            img_list,
-            chapter_url,
-            next_chapter_index,
+                bookname,
+                chapter_title,
+                img_list,
+                chapter_url,
+                next_chapter_index,
         ) in self.ParseFeedUrls():
             for item in self.gen_image_items(img_list, chapter_url):
                 yield item
-            self.UpdateLastDelivered(
-                bookname, chapter_title, next_chapter_index)
+            self.UpdateLastDelivered(bookname, chapter_title, next_chapter_index)
 
     # 更新已经推送的序号和标题到数据库
     def UpdateLastDelivered(self, bookname, chapter_title, num):
@@ -1704,6 +1647,7 @@ class BaseComicBook(BaseFeedBook):
             return data
 
         # 如果一个图片为横屏，则将其分隔成2个图片
+
     def SplitWideImage(self, data):
         if not isinstance(data, StringIO):
             data = StringIO(data)
@@ -1716,13 +1660,13 @@ class BaseComicBook(BaseFeedBook):
             return None
 
         imagesData = []
-        part2 = img.crop((width/2-10, 0, width, height))
+        part2 = img.crop((width / 2 - 10, 0, width, height))
         part2.load()
         part2Data = StringIO()
         part2.save(part2Data, fmt)
         imagesData.append(part2Data.getvalue())
 
-        part1 = img.crop((0, 0, width/2+10, height))
+        part1 = img.crop((0, 0, width / 2 + 10, height))
         part1.load()
         part1Data = StringIO()
         part1.save(part1Data, fmt)
@@ -1730,9 +1674,8 @@ class BaseComicBook(BaseFeedBook):
 
         return imagesData
 
+
 # 几个小工具函数
-
-
 def remove_beyond(tag, next):
     while tag is not None and getattr(tag, 'name', None) != 'body':
         after = getattr(tag, next)
@@ -1741,9 +1684,8 @@ def remove_beyond(tag, next):
             after = getattr(tag, next)
         tag = tag.parent
 
+
 # 获取BeautifulSoup中的一个tag下面的所有字符串
-
-
 def string_of_tag(tag, normalize_whitespace=False):
     if not tag:
         return ''
@@ -1762,17 +1704,15 @@ def string_of_tag(tag, normalize_whitespace=False):
         ans = re.sub(r'\s+', ' ', ans)
     return ans
 
+
 # 将抓取的网页发到自己邮箱进行调试
-
-
 def debug_mail(content, name='page.html'):
     from google.appengine.api import mail
     mail.send_mail(SRC_EMAIL, SRC_EMAIL, "KindleEar Debug", "KindlerEar",
                    attachments=[(name, content), ])
 
+
 # 抓取网页，发送到自己邮箱，用于调试目的
-
-
 def debug_fetch(url, name='page.html'):
     if not name:
         name = 'page.html'
@@ -1781,13 +1721,11 @@ def debug_fetch(url, name='page.html'):
     if result.status_code == 200 and result.content:
         debug_mail(result.content, name)
     else:
-        default_log.warn('debug_fetch failed: code:%d, url:%s' %
-                         (result.status_code, url))
+        default_log.warn('debug_fetch failed: code:%d, url:%s' % (result.status_code, url))
+
 
 # 本地调试使用，在本地创建一个FTP服务器后，将调试文件通过FTP保存到本地
 # 因为只是调试使用，所以就没有那么复杂的处理了，要提前保证目标目录存在
-
-
 def debug_save_ftp(content, name='page.html', root='', server='127.0.0.1', port=21, username='', password=''):
     import ftplib
     ftp = ftplib.FTP()
