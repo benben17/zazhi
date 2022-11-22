@@ -217,7 +217,7 @@ class Worker(BaseHandler):
                         sections[sec_or_media].append((title, brief, thumbnail, content))
                         itemcnt += 1
             except Exception as e:
-                main.log.exception(u"Failed to push <%s>, Err:%s" % (book.title, str(e)))
+                main.log.exception(u"Failed to push <{}>, Err:{}".format(book.title, str(e)))
                 continue
         
         volumeTitle = ''
