@@ -64,7 +64,7 @@ class HandleMail(InboundMailHandler):
             and not user.whitelist.filter('mail = ', sender.lower()).get()
             and not user.whitelist.filter('mail = ', '@' + mailhost.lower()).get()):
             self.response.out.write("Spam mail!")
-            log.warning('Spam mail from : %s'.format(sender))
+            log.warning('Spam mail from : {}'.format(sender))
             return
         
         if hasattr(message, 'subject'):
@@ -127,7 +127,7 @@ class HandleMail(InboundMailHandler):
                     break
 
             bodies = u"""<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-              <title>%s</title></head><body>%s</body></html>""".format(subject, ''.join(bodyurls) if bodyurls else bodies)
+              <title>{}</title></head><body>{}</body></html>""".format(subject, ''.join(bodyurls) if bodyurls else bodies)
             allBodies = [bodies.encode('utf-8')]
         
         # 开始处理邮件内容

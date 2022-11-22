@@ -55,7 +55,7 @@ class Url2Book(BaseHandler):
                     if not dlinfo:
                         dlinfo = 'download failed'
                     self.deliverlog(username, str(to), filename, 0, status=dlinfo, tz=tz)
-                main.log.info("%s Sent!".format(filename))
+                main.log.info("{} Sent!".format(filename))
             return "%s Sent!" % filename
         elif booktype == 'Debug': #调试目的，将链接直接下载，发送到管理员邮箱
             from books.base import debug_fetch

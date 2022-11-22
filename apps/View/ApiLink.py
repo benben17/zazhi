@@ -218,7 +218,7 @@ class FeedRSS(BaseHandler):
                     return json.dumps(res)
                 else:
                     res['status'] = 'failed'
-                    res['msg'] = 'The feed(%d) not exist!'.format(feed_id)
+                    res['msg'] = 'The feed(%d) not exist!' % (feed_id)
                     return json.dumps(res)
         elif mgrType.lower() == 'invalid':
             feed_id = self.webInput.get('feed_id')
@@ -234,14 +234,17 @@ class ApiFeedBook(BaseHandler):
         self.queue2push = defaultdict(list)
     def POST(self,mgrType):
         user_name = self.webInput.get('user_name')
+        print user_name
         if not user_name:
             return json.dumps({'status': 'failed', "msg": "user_name empty!"})
         user = KeUser.all().filter("name = ", user_name).get()
         if not user:
             return json.dumps({'status': 'failed',"msg":"user not exists"})
-
+        print "1111"
         if mgrType.lower() == 'deliver':
+
             feed_id = self.webInput.get('feed_id')
+            print "ok"
             books = Book.all()
             bks = [item for item in books if user_name in item.users]
             if len(bks) == 0:
