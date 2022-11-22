@@ -21,9 +21,7 @@ from google.appengine.api.mail_errors import (InvalidSenderError,
 from google.appengine.runtime.apiproxy_errors import (OverQuotaError,
                                                       DeadlineExceededError)
 from sendgrid.helpers.mail import Email, Content, Mail, Attachment
-
 from apps.dbModels import *
-from config import *
 from utils import *
 
 __auth_key__ = 'rss2Ebook.com.luck!'
@@ -97,7 +95,7 @@ class BaseHandler(object):
                             book=book, status=status)
             dl.put()
         except Exception as e:
-            default_log.warn('DeliverLog failed to save:%s', str(e))
+            default_log.warn('DeliverLog failed to save:%s'.format(str(e)))
 
     @classmethod
     def sendgrid_sendmail(self, _apikey, _from, _to, _subject, _body, attachments=[]):
@@ -157,7 +155,7 @@ class BaseHandler(object):
             except OverQuotaError as e:
                 if i < SENDMAIL_RETRY_CNT:
                     default_log.warn(
-                        'overquota when sendmail to %s:%s, retry!' % (to, str(e)))
+                        'overquota when sendmail to %s:%s, retry!'.format(to, str(e)))
                     self.deliverlog(name, str(to), title, len(
                         attachment), tz=tz, status='over quota')
                     time.sleep(10)

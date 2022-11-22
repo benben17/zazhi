@@ -37,10 +37,7 @@ log.setLevel(logging.INFO if IsRunInLocal else logging.WARN)
 
 import web
 import jinja2
-#from google.appengine.api import mail
-#from google.appengine.api import taskqueue
 from google.appengine.api import memcache
-
 from lib.memcachestore import MemcacheStore
 from books import BookClasses
 

@@ -64,7 +64,7 @@ class HandleMail(InboundMailHandler):
             and not user.whitelist.filter('mail = ', sender.lower()).get()
             and not user.whitelist.filter('mail = ', '@' + mailhost.lower()).get()):
             self.response.out.write("Spam mail!")
-            log.warn('Spam mail from : %s' % sender)
+            log.warning('Spam mail from : %s'.format(sender))
             return
         
         if hasattr(message, 'subject'):
@@ -72,7 +72,7 @@ class HandleMail(InboundMailHandler):
         else:
             subject = u"NoSubject"
         
-        #邮件主题中如果在最后添加一个 !links，则强制提取邮件中的链接然后生成电子书
+        # 邮件主题中如果在最后添加一个 !links，则强制提取邮件中的链接然后生成电子书
         forceToLinks = False
         forceToArticle = False
         if subject.endswith('!links'):
@@ -82,7 +82,7 @@ class HandleMail(InboundMailHandler):
             subject = subject.replace(' !links ', '')
             forceToLinks = True
         
-        #如果邮件主题在最后添加一个 !article，则强制转换邮件内容为电子书，忽略其中的链接
+        # 如果邮件主题在最后添加一个 !article，则强制转换邮件内容为电子书，忽略其中的链接
         if not forceToLinks:
             if subject.endswith('!article'):
                 subject = subject.replace('!article', '').rstrip()
@@ -91,26 +91,26 @@ class HandleMail(InboundMailHandler):
                 subject = subject.replace(' !article ', '')
                 forceToArticle = True
             
-        #通过邮件触发一次“现在投递”
+        # 通过邮件触发一次“现在投递”
         if to.lower() == 'trigger':
             return self.TrigDeliver(subject, username)
         
-        #获取和解码邮件内容
+        # 获取和解码邮件内容
         txt_bodies = message.bodies('text/plain')
         html_bodies = message.bodies('text/html')
         try:
             allBodies = [body.decode() for ctype, body in html_bodies]
         except:
-            log.warn('Decode html bodies of mail failed.')
+            log.warning('Decode html bodies of mail failed.')
             allBodies = []
         
-        #此邮件为纯文本邮件
+        # 此邮件为纯文本邮件
         if len(allBodies) == 0:
             log.info('no html body, use text body.')
             try:
                 allBodies = [body.decode() for ctype, body in txt_bodies]
             except:
-                log.warn('Decode text bodies of mail failed.')
+                log.warning('Decode text bodies of mail failed.')
                 allBodies = []
             bodies = u''.join(allBodies)
             if not bodies:
@@ -127,14 +127,13 @@ class HandleMail(InboundMailHandler):
                     break
 
             bodies = u"""<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-              <title>%s</title></head><body>%s</body></html>""" %(subject,
-              ''.join(bodyurls) if bodyurls else bodies)
+              <title>%s</title></head><body>%s</body></html>""".format(subject, ''.join(bodyurls) if bodyurls else bodies)
             allBodies = [bodies.encode('utf-8')]
         
-        #开始处理邮件内容
+        # 开始处理邮件内容
         soup = BeautifulSoup(allBodies[0], 'lxml')
         
-        #合并多个邮件文本段
+        # 合并多个邮件文本段
         if len(allBodies) > 1:
             for o in allBodies[1:]:
                 so = BeautifulSoup(o, 'lxml')
@@ -144,10 +143,10 @@ class HandleMail(InboundMailHandler):
                 for c in b.contents:
                     soup.body.append(c)
         
-        #判断邮件内容是文本还是链接（包括多个链接的情况）
+        # 判断邮件内容是文本还是链接（包括多个链接的情况）
         links = []
         body = soup.body if soup.find('body') else soup
-        if not forceToArticle: #如果强制转正文就不分析链接了，否则先分析和提取链接
+        if not forceToArticle: # 如果强制转正文就不分析链接了，否则先分析和提取链接
             for s in body.stripped_strings:
                 link = IsHyperLink(s)
                 if link:
@@ -186,9 +185,9 @@ class HandleMail(InboundMailHandler):
             #判断是下载文件还是转发内容
             isBook = bool(to.lower() in ('book', 'file', 'download'))
             if not isBook:
-                isBook = bool(link[-5:].lower() in ('.mobi','.epub','.docx'))
+                isBook = bool(link[-5:].lower() in ('.mobi', '.epub', '.docx'))
             if not isBook:
-                isBook = bool(link[-4:].lower() in ('.pdf','.txt','.doc','.rtf'))
+                isBook = bool(link[-4:].lower() in ('.pdf', '.txt', '.doc', '.rtf'))
             isDebug = bool(to.lower() == 'debug')
 
             if isDebug:
@@ -313,10 +312,9 @@ class HandleMail(InboundMailHandler):
                 if trigbook:
                     bkids.append(str(trigbook.key().id()))
                 else:
-                    log.warn('book not found : %s' % b.strip())
+                    log.warning('book not found : %s' % b.strip())
             if bkids:
-                taskqueue.add(url='/worker',queue_name="deliverqueue1",method='GET',
-                    params={'u':username,'id':','.join(bkids)},target='worker')
+                taskqueue.add(url='/worker', queue_name="deliverqueue1", method='GET', params={'u': username, 'id': ','.join(bkids)}, target='worker')
                     
         
 appmail = webapp2.WSGIApplication([HandleMail.mapping()], debug=False)

@@ -87,16 +87,18 @@ class SyncUser(BaseHandler):
                 self.res['status'] = 'failed'
                 return json.dumps(self.res)
             book = user.ownfeeds
-            if self.webInput.get('frequency') == 'week':  # 每周发送  oldest_article = 7 每天 发送1
-                book.oldest_article = 1
-            elif self.webInput.get('frequency') == 'every':
+            if self.webInput.get('frequency') == 'every':  # 每周发送  oldest_article = 7 每天 发送1
                 book.oldest_article = 7
-            book.put()
-            if not self.webInput.get('send_day'):  # 用户定义 哪天发送 不定义默认为周五 早上8点
-                user.send_days = ['Friday']
-            else:
+                user.send_days = DEFAULT_SEND_DAYS
+            elif self.webInput.get('frequency') == 'every':
+                book.oldest_article = 1
                 if self.webInput.get('send_day') in DEFAULT_SEND_DAYS:
-                    user.send_days = [self.webInput.get('send_day')]
+                    user.send_days = self.webInput.get('send_day')
+                else:
+                    user.send_days = ['Friday']
+            book.put()
+
+
             user.send_time = int(self.webInput.get('send_time', 8))
             user.device = self.webInput.get('devicetype') or 'kindle'
             user.titlefmt = self.webInput.get('titlefmt') or '%Y-%m-%d'
